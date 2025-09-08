@@ -1,0 +1,9 @@
+subscription_id_value               = "b54b4eeb-e9a6-4f46-b1c1-6f4691cb9b72"
+vipin_resource_group_name           = "vipin_devops_resource_group"
+vipin_resource_group_location       = "East US"
+vipin_virtual_network_name          = "vipin_virtual_network"
+vipin_virtual_network_address_space = ["172.25.0.0/16"]
+vipin_subnet_name                   = "vipin_virtual_subnet"
+subnet_count                        = 4
+vipin_virtual_machine_name          = "vipin-vm-devops"
+vipin_storage_account_name          = "vipinstorageaccount"
