@@ -1,0 +1,39 @@
+trigger: none
+pool:
+  vmImage: 'ubuntu-latest'
+variables:
+  - name: reponame
+    value: 'learndockercloud/azuredevops'
+  - name: tagname
+    value: 'azuredevops-$(Build.BuildId)'
+stages:
+- stage: buildimage
+  jobs:
+  - job: buildingimage
+    steps:
+    - script: |
+        hostname
+        echo "Building Image"
+        echo "Learning CI Pipeline"
+    - script: sudo hostname
+    - script: sudo docker ps -a
+    - task: Docker@2
+      displayName: "Build Image"
+      inputs:
+        command: 'build'
+        dockerfile: "Dockerfile"
+        repository: $(reponame)
+        tags: $(tagname)
+    - script: sudo docker images
+    - task: Docker@2
+      displayName: "Login to DockerHub"
+      inputs:
+        command: 'login'
+        containerRegistry: service-connection
+    - task: Docker@2
+      displayName: "Push Image"
+      inputs:
+        command: 'push'
+        containerRegistry: service-connection
+        repository: $(reponame)
+        tags: $(tagname)

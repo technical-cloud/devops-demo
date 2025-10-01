@@ -1,0 +1,16 @@
+https://www.youtube.com/watch?v=4BibQ69MD8c
+
+Azure DevOps is a SaaS platform to implement complete DevOps process
+Purpose is to implement DevOps process
+It makes developing and releasing applications - fast , automation and high quality
+
+Tool sets for Dev(Plan , Code , Build , Test ) + Ops ( release , deploy , operate , monitor )
+
+Devops -> Azure Boards ( Tasks , Tickets , Features , Epic - Assign , Status and assigned  ) , Azure Repos ( Hosting the code - like GIT Hub , Pull , Branch , Review , Approve , Merge  ) , Azure Test Plan , Azure Pipelines ( Test + Build )  - Release as Azure Artifacts ( Jar / War  ) or Docker Regis ( Images )
+- Till this stage is it Continuous Integeration .
+
+Now from Azure Repo or Docker Registry ->  Deploy in actual environment -> Is called as CD ( Continuous Delivery )
+
+
+
+
