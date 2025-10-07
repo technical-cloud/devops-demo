@@ -1,39 +1,52 @@
 trigger: none
+
 pool:
   vmImage: 'ubuntu-latest'
+
 variables:
   - name: reponame
     value: 'learndockercloud/azuredevops'
   - name: tagname
     value: 'azuredevops-$(Build.BuildId)'
+
 stages:
 - stage: buildimage
   jobs:
   - job: buildingimage
     steps:
+    # Step 1: Basic info
     - script: |
         hostname
         echo "Building Image"
         echo "Learning CI Pipeline"
-    - script: sudo hostname
-    - script: sudo docker ps -a
-    - task: Docker@2
-      displayName: "Build Image"
-      inputs:
-        command: 'build'
-        dockerfile: "Dockerfile"
-        repository: $(reponame)
-        tags: $(tagname)
-    - script: sudo docker images
+
+    # Step 2: Login to Docker Hub BEFORE building or pushing
     - task: Docker@2
       displayName: "Login to DockerHub"
       inputs:
         command: 'login'
-        containerRegistry: service-connection
+        containerRegistry: 'service-connection'   # must match your actual service connection name
+
+    # Step 3: Build the Docker image from Dockerfile
     - task: Docker@2
-      displayName: "Push Image"
+      displayName: "Build Docker Image"
+      inputs:
+        command: 'build'
+        dockerfile: 'Dockerfile'
+        containerRegistry: 'service-connection'
+        repository: $(reponame)
+        tags: $(tagname)
+
+    # Step 4: Verify image exists locally
+    - script: |
+        echo "Listing Docker Images:"
+        docker images
+
+    # Step 5: Push to Docker Hub
+    - task: Docker@2
+      displayName: "Push Image to DockerHub"
       inputs:
         command: 'push'
-        containerRegistry: service-connection
+        containerRegistry: 'service-connection'
         repository: $(reponame)
         tags: $(tagname)
