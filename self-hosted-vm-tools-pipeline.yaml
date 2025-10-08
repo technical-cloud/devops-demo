@@ -1,0 +1,31 @@
+trigger: none
+pool:
+  name: 'vadapav'
+  agent: 'linuxagent'
+
+stages:
+
+- stage: Check out the terraform code in the custom directory
+  
+  jobs:
+  - job: checkout_code
+    displayName: 'Checkout Code'
+    steps:
+    - checkout: self
+      path: terraform-code-self-hosted-vm
+      
+  - script: |
+    sudo mkdir -p /root/terraform-code-self-hosted-vm
+    sudo cp -r $(Pipeline.Workspace)/s/terraform-code-self-hosted-vm /root/terraform-code-self-hosted-vm
+    sudo cd /root/terraform-code-self-hosted-vm
+    ls -l
+
+  - job: install_self_hosted_vm
+    dependsOn: checkout_code
+    displayName: 'Install Self Hosted VM with devops tools'
+    steps:
+    - script: |
+        terraform init
+        terraform validate
+        terraform plan -out=tfplan
+        terraform apply -auto-approve tfplan
