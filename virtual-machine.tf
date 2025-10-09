@@ -10,7 +10,7 @@ resource "azurerm_public_ip" "vipin_public_ip_local" {
   location            = azurerm_resource_group.vipin_rg_local.location
   resource_group_name = azurerm_resource_group.vipin_rg_local.name
   allocation_method   = "Static"
-  sku                 = "Basic"
+  sku                 = "Standard"
 }
 
 # Network Interface
