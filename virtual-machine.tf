@@ -1,9 +1,3 @@
-resource "azurerm_resource_group" "vipin_rg_local" {
-  name     = var.rgname
-  location = var.region
-}
-
-# Public IP
 resource "azurerm_public_ip" "vipin_public_ip_local" {
   count               = length(var.subnetname)
   name                = "vipin-public-ip-${count.index}"
