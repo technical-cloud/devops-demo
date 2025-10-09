@@ -4,28 +4,27 @@ pool:
   agent: 'linuxagent'
 
 stages:
-
-- stage: Check out the terraform code in the custom directory
-  
+- stage: CheckoutAndInstall
   jobs:
   - job: checkout_code
     displayName: 'Checkout Code'
     steps:
     - checkout: self
       path: terraform-code-self-hosted-vm
-      
-  - script: |
-    sudo mkdir -p /root/terraform-code-self-hosted-vm
-    sudo cp -r $(Pipeline.Workspace)/s/terraform-code-self-hosted-vm /root/terraform-code-self-hosted-vm
-    sudo cd /root/terraform-code-self-hosted-vm
-    ls -l
+    - script: |
+        sudo mkdir -p /root/terraform-code-self-hosted-vm
+        sudo cp -r $(Pipeline.Workspace)/s/terraform-code-self-hosted-vm /root/terraform-code-self-hosted-vm
+        cd /root/terraform-code-self-hosted-vm
+        ls -l
+      displayName: 'Prepare Terraform Code'
 
   - job: install_self_hosted_vm
     dependsOn: checkout_code
-    displayName: 'Install Self Hosted VM with devops tools'
+    displayName: 'Install Self Hosted VM with DevOps Tools'
     steps:
     - script: |
         terraform init
         terraform validate
         terraform plan -out=tfplan
         terraform apply -auto-approve tfplan
+      displayName: 'Run Terraform'
