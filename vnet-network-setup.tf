@@ -13,5 +13,3 @@ resource "azurerm_subnet" "vipin_subnet_local" {
   virtual_network_name = azurerm_virtual_network.vipin_vnet_local.name
   address_prefixes     = [var.subnetaddr[count.index]]
 }
-
-
