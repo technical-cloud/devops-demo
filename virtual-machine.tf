@@ -16,7 +16,7 @@ resource "azurerm_network_interface" "vipin_nic_local" {
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = subnet_id = azurerm_subnet.vipin_subnet_local[count.index].id
+    subnet_id = azurerm_subnet.vipin_subnet_local[count.index].id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vipin_public_ip_local[count.index].id
   }
