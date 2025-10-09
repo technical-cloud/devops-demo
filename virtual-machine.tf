@@ -1,6 +1,6 @@
 resource "azurerm_resource_group" "vipin_rg_local" {
-  name     = "vipin-rg-local"
-  location = "East US"
+  name     = "var.rgname"
+  location = "var.region"
 }
 
 # Public IP
