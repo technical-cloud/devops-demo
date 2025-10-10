@@ -7,7 +7,7 @@ variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   agent_pool: "vadapav"
   agent_name: "vipin-agent"
-  ado_pat: "8ZKfOrj4vWgA3AjeB5FOEF9VuiuWGCrTzJtmBvPViYqrerbDhYCCJQQJ99BJACAAAAAp9R4wAAASAZDO2obe"
+  ado_pat: "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
 
 # -------------------------------
 # Global Pool
