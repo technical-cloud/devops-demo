@@ -11,6 +11,7 @@ subnetaddr      = ["10.10.10.0/24"]
 nicname         = "vipin-demo-nic"
 org_url        = "https://dev.azure.com/vadapavsamosa/user19"
 agent_pool     = "vadapav"
+agent_name = "vipin-agent"
 ado_pat = "8ZKfOrj4vWgA3AjeB5FOEF9VuiuWGCrTzJtmBvPViYqrerbDhYCCJQQJ99BJACAAAAAp9R4wAAASAZDO2obe"
 #personal_access_token = "4sSzdH4CFyJWp3nSSoCWfiYaUotF4sZqlSu4tihSHTL5mgaHsbZPJQQJ99BJACAAAAAp9R4wAAASAZDO4fO3"
 nsgrules = [{ "rulename" = "sshrule", "priority" = "100", "dport" = "22", "protocol" = "Tcp" },

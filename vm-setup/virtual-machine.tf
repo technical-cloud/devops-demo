@@ -53,6 +53,7 @@ resource "azurerm_linux_virtual_machine" "vipin_vm_local" {
   org_url    = var.org_url
   ado_pat    = var.ado_pat
   agent_pool = var.agent_pool
+  agent_name = var.agent_name
 }))
 
 }

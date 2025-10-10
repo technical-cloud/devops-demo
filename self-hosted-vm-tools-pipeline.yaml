@@ -1,30 +1,116 @@
 trigger: none
+
+# -------------------------------
+# Hardcoded Variables
+# -------------------------------
+variables:
+  org_url: "https://dev.azure.com/vadapavsamosa/user19"
+  agent_pool: "vadapav"
+  agent_name: "vipin-agent"
+  ado_pat: "8ZKfOrj4vWgA3AjeB5FOEF9VuiuWGCrTzJtmBvPViYqrerbDhYCCJQQJ99BJACAAAAAp9R4wAAASAZDO2obe"
+
+# -------------------------------
+# Global Pool
+# -------------------------------
 pool:
   name: 'vadapav'
   agent: 'linuxagent'
 
+# -------------------------------
+# Stage 1 – Create Self-Hosted VM
+# -------------------------------
 stages:
-- stage: CheckoutAndInstall
+- stage: VM_Creation_using_existing_Self_Hosted_Agent
+  displayName: 'Create Self-Hosted VM using Terraform'
   jobs:
-  - job: checkout_code
-    displayName: 'Checkout Code'
+  - job: checkout_code_vm_setup
+    displayName: 'Checkout and Run Terraform for VM Setup'
     steps:
     - checkout: self
-      path: terraform-code-self-hosted-vm
-    - script: |
-        sudo mkdir -p /root/terraform-code-self-hosted-vm
-        sudo cp -r $(Pipeline.Workspace)/s/terraform-code-self-hosted-vm /root/terraform-code-self-hosted-vm
-        cd /root/terraform-code-self-hosted-vm
-        ls -l
-      displayName: 'Prepare Terraform Code'
+      path: vm-setup-azure-devops-tools
 
-  - job: install_self_hosted_vm
-    dependsOn: checkout_code
-    displayName: 'Install Self Hosted VM with DevOps Tools'
-    steps:
     - script: |
+        echo "Creating folder for VM setup code..."
+        sudo mkdir -p /root/vm-setup
+
+        echo "Copying Terraform VM setup code to /root/vm-setup..."
+        sudo cp -r $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup/* /root/vm-setup/
+
+        cd /root/vm-setup
+        ls -l
+
+        echo "Running Terraform to create VM..."
         terraform init
         terraform validate
         terraform plan -out=tfplan
         terraform apply -auto-approve tfplan
-      displayName: 'Run Terraform'
+      displayName: 'Terraform Apply for VM Setup'
+
+# ---------------------------------------------------------
+# Stage 2 – Wait until new agent is ready
+# ---------------------------------------------------------
+- stage: Wait_for_New_Agent
+  displayName: 'Wait for vipin-agent registration'
+  dependsOn: VM_Creation_using_existing_Self_Hosted_Agent
+  jobs:
+  - job: wait_for_agent_registration
+    displayName: 'Check periodically until vipin-agent is online'
+    steps:
+    - script: |
+        sudo apt-get update && sudo apt-get install -y jq
+
+        echo "Waiting for self-hosted agent '$(agent_name)' to register..."
+        for i in {1..20}; do
+          echo "Attempt $i: Checking agent status..."
+
+          online=$(curl -s -u ":$(ado_pat)" \
+            "$(org_url)/_apis/distributedtask/pools?poolName=$(agent_pool)&api-version=7.0" \
+            | jq -r ".value[0].agents[] | select(.name==\"$(agent_name)\") | .status")
+
+          if [[ "$online" == "online" ]]; then
+            echo "$(agent_name) is online and ready!"
+            exit 0
+          fi
+
+          echo "⏳ Agent not online yet. Waiting 30s..."
+          sleep 30
+        done
+
+        echo "$(agent_name) did not come online in expected time!"
+        exit 1
+      displayName: 'Wait for agent to be online'
+
+# ---------------------------------
+# Stage 3 – Install Tools on New VM
+# ---------------------------------
+- stage: Install_tools_on_hosted_vm
+  displayName: 'Install DevOps Tools on Newly Created Self-Hosted VM'
+  dependsOn: Wait_for_New_Agent
+  jobs:
+  - job: install_tools_on_hosted_vm
+    displayName: 'Install DevOps Tools via Terraform'
+    pool:
+      name: 'vadapav'
+      demands:
+        - agent.name -equals $(agent_name)
+
+    steps:
+    - checkout: self
+      path: vm-setup-azure-devops-tools
+
+    - script: |
+        echo "Creating folder for tools setup code..."
+        sudo mkdir -p /root/vm-tools
+
+        echo "Copying Terraform tools setup code to /root/vm-tools..."
+        sudo cp -r $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools/* /root/vm-tools/
+
+        cd /root/vm-tools
+        ls -l
+
+        echo "Running Terraform to install DevOps tools..."
+        terraform init
+        terraform validate
+        terraform plan -out=tfplan
+        terraform apply -auto-approve tfplan
+      displayName: 'Terraform Apply for DevOps Tools'

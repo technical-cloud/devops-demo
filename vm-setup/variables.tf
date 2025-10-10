@@ -55,6 +55,10 @@ variable "agent_pool" {
   type = string
 }
 
+variable "agent_name" {
+  type = string
+}
+
 variable org_url {
   type = string  
 }
