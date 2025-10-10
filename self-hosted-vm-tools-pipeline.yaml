@@ -14,7 +14,7 @@ variables:
 # -------------------------------
 pool:
   name: 'vadapav'
-  agent: 'linuxagent'
+  agent: 'vipin-agent-machine'
 
 # -------------------------------
 # Stage 1 – Create Self-Hosted VM
