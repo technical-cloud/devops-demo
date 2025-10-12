@@ -28,25 +28,29 @@ stages:
     - script: |
         echo "=== Detect OS ==="
         if [ -f /etc/redhat-release ]; then
-            OS="RHEL"
+          OS="RHEL"
         elif [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
-            OS="UBUNTU"
+          OS="DEB"
         else
-            echo "Unsupported OS"
-            exit 1
+          echo "Unsupported OS. Exiting."
+          exit 1
         fi
         echo "Detected OS: $OS"
 
-        echo "=== Installing prerequisites ==="
-        if [ "$OS" == "RHEL" ]; then
-            sudo yum install -y curl unzip git || true
+        echo "=== Installing prerequisites (curl, unzip, git) ==="
+        if [ "$OS" = "RHEL" ]; then
+          sudo yum install -y curl unzip git
         else
-            sudo apt-get update -y
-            sudo apt-get install -y curl unzip git
+          sudo apt-get update -y
+          sudo apt-get install -y curl unzip git
         fi
 
-        echo "=== Installing Terraform ==="
-        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        echo "=== Downloading Terraform ==="
+        curl -fLo terraform_1.7.6_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        if [ ! -f terraform_1.7.6_linux_amd64.zip ]; then
+          echo "❌ Terraform download failed. Exiting..."
+          exit 1
+        fi
         unzip terraform_1.7.6_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
         sudo chmod +x /usr/local/bin/terraform
@@ -61,8 +65,8 @@ stages:
         # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
         if [ -z "$VM_IP" ]; then
-            echo "❌ ERROR: VM IP is empty. Exiting..."
-            exit 1
+          echo "❌ ERROR: VM IP is empty. Exiting..."
+          exit 1
         fi
         echo "✅ VM Public IP: $VM_IP"
 
@@ -103,10 +107,9 @@ stages:
 
         terraform -v || {
           echo "Terraform not found — installing..."
-          curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+          curl -fLo terraform_1.7.6_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
           unzip terraform_1.7.6_linux_amd64.zip
           sudo mv terraform /usr/local/bin/
-          sudo chmod +x /usr/local/bin/terraform
           rm terraform_1.7.6_linux_amd64.zip
         }
 
