@@ -1,8 +1,58 @@
 trigger: none
 
-pool:
-  vmImage: 'ubuntu-latest'
+variables:
+  org_url: "https://dev.azure.com/vadapavsamosa/user19"
+  agent_pool: "vadapav"
+  agent_name: "vipin-agent-machine"
+  ado_pat: "YOUR_PAT_HERE"
 
-steps:
-- script: echo "✅ YAML file is loading correctly!"
-  displayName: "Sanity Check"
+pool:
+  name: 'vadapav'
+
+stages:
+
+# Stage 1 – Create VM
+- stage: VM_Creation
+  jobs:
+  - job: create_vm
+    displayName: 'Create VM via Terraform'
+    steps:
+    - checkout: self
+      path: vm-setup-azure-devops-tools
+
+    - script: |
+        sudo apt-get update -y
+        sudo apt-get install -y unzip curl
+
+        # Install Terraform
+        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        unzip terraform_1.7.6_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+
+        cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup
+        terraform init
+        terraform apply -auto-approve
+
+        # Capture VM IP
+        VM_IP=$(terraform output -raw vm_public_ip)
+        echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
+      displayName: 'Terraform Apply for VM'
+
+# Stage 2 – Install Tools on VM
+- stage: Install_Tools
+  dependsOn: VM_Creation
+  jobs:
+  - job: install_tools
+    displayName: 'Install DevOps Tools via SSH'
+    steps:
+    - checkout: self
+      path: vm-setup-azure-devops-tools
+
+    - script: |
+        VM_IP=$(VM_IP)
+        cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools
+
+        terraform init
+        terraform plan -var "vm_public_ip=$VM_IP" -out=tfplan
+        terraform apply -auto-approve tfplan
+      displayName: 'Terraform Apply for DevOps Tools'
