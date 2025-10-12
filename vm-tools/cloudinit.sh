@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+ADO_PAT=$1  # Get the PAT from argument
+
 # -------------------------------
 # Logging
 # -------------------------------
@@ -8,52 +10,43 @@ exec > >(tee -i /var/log/cloudinit.log)
 exec 2>&1
 
 echo "Starting DevOps tools installation on Ubuntu VM..."
+echo "Using Azure DevOps PAT: $ADO_PAT"
 
 # -------------------------------
 # Update system and install essentials
 # -------------------------------
-echo "Updating system packages..."
-sudo apt-get update -y
-sudo apt-get install -y git unzip curl apt-transport-https software-properties-common
+sudo yum update -y
+sudo yum install -y git unzip curl apt-transport-https software-properties-common
 
 # -------------------------------
 # Install Docker
 # -------------------------------
-echo "Installing Docker..."
-sudo apt-get install -y docker.io
+sudo yum install -y docker
 sudo systemctl enable docker
 sudo systemctl start docker
-
-# Add default user to docker group to avoid sudo for docker
 sudo usermod -aG docker $USER
-
-# Verify Docker installation
 docker --version
 
 # -------------------------------
 # Install Azure CLI
 # -------------------------------
-echo "Installing Azure CLI..."
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 # -------------------------------
 # Install kubectl
 # -------------------------------
-echo "Installing kubectl..."
-curl -fLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 rm -f kubectl
 
 # -------------------------------
 # Install Helm
 # -------------------------------
-echo "Installing Helm..."
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # -------------------------------
 # Install Terraform
 # -------------------------------
-echo "Installing Terraform..."
 curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
 unzip terraform_1.7.6_linux_amd64.zip
 sudo mv terraform /usr/local/bin/
@@ -63,7 +56,6 @@ rm terraform_1.7.6_linux_amd64.zip
 # -------------------------------
 # Final verification
 # -------------------------------
-echo "Verifying installed tools..."
 git --version
 docker --version
 az version

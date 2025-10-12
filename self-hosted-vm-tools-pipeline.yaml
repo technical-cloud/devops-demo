@@ -50,29 +50,45 @@ stages:
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install DevOps Tools on New VM
+# Stage 2 – Install DevOps Tools
 # -------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on New VM'
+  displayName: 'Stage 2: Install DevOps Tools'
   dependsOn: VM_Creation
   jobs:
   - job: install_tools
-    displayName: 'Install DevOps Tools on VM via Terraform'
+    displayName: 'Install DevOps Tools via Terraform'
     pool:
       name: 'vadapav'
     variables:
-      VM_IP: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
+      vm_public_ip: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
+      ado_pat: $(ado_pat)
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing DevOps Tools on VM $VM_IP via Terraform null_resource..."
+        echo "Installing DevOps Tools on VM $vm_public_ip..."
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
+
+        # Ensure Terraform is installed on this agent too
+        terraform -v || {
+          echo "Installing Terraform..."
+          curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+          unzip terraform_1.7.6_linux_amd64.zip
+          sudo mv terraform /usr/local/bin/
+          rm terraform_1.7.6_linux_amd64.zip
+        }
 
         terraform init
         terraform validate
 
-        terraform plan -var "vm_public_ip=$(VM_IP)" -var "ado_pat=$(ado_pat)" -out=tfplan
+        echo "Planning Terraform apply for DevOps tools..."
+        terraform plan \
+          -var "vm_public_ip=$(vm_public_ip)" \
+          -var "ado_pat=$(ado_pat)" \
+          -out=tfplan
+
+        echo "Applying Terraform plan to execute remote-exec on new VM..."
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'

@@ -1,14 +1,14 @@
-# -------------------------------
-# Null resource to install DevOps tools on new VM
-# -------------------------------
-resource "null_resource" "install_devops_tools" {
-  depends_on = [azurerm_linux_virtual_machine.vipin_vm_local]
+variable "vm_public_ip" {}
+variable "ado_pat" {}
+variable "agent_user" { default = "docker" }
+variable "agent_pass" { default = "Docker@12345" }
 
+resource "null_resource" "install_devops_tools" {
   connection {
     type     = "ssh"
-    host     = azurerm_linux_virtual_machine.vipin_vm_local[0].public_ip_address
-    user     = "docker"
-    password = "Docker@12345"   # Or use key authentication
+    host     = var.vm_public_ip
+    user     = var.agent_user
+    password = var.agent_pass
   }
 
   provisioner "file" {
@@ -19,7 +19,7 @@ resource "null_resource" "install_devops_tools" {
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/cloudinit.sh",
-      "sudo /tmp/cloudinit.sh"
+      "sudo /tmp/cloudinit.sh ${var.ado_pat}"
     ]
   }
 }
