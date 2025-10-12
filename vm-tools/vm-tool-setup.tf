@@ -1,7 +1,19 @@
-variable "vm_public_ip" {}
-variable "ado_pat" {}
-variable "agent_user" { default = "docker" }
-variable "agent_pass" { default = "Docker@12345" }
+variable "vm_public_ip" {
+  description = "Public IP of the VM created in Stage 1"
+  type        = string
+}
+
+variable "agent_user" {
+  description = "VM username"
+  type        = string
+  default     = "docker"
+}
+
+variable "agent_pass" {
+  description = "VM password"
+  type        = string
+  default     = "Docker@12345"
+}
 
 resource "null_resource" "install_devops_tools" {
   connection {
@@ -19,7 +31,7 @@ resource "null_resource" "install_devops_tools" {
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/cloudinit.sh",
-      "sudo /tmp/cloudinit.sh ${var.ado_pat}"
+      "sudo /tmp/cloudinit.sh"
     ]
   }
 }

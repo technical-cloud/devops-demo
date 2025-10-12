@@ -3,16 +3,15 @@ trigger: none
 variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   existing_agent: "vipin-agent-machine"
-  ado_pat: "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
 
 pool:
   name: 'vadapav'
 
 stages:
 
-# -------------------------------
-# Stage 1 – Create Ubuntu VM
-# -------------------------------
+# ==========================================================
+# Stage 1 – Create Ubuntu VM via Terraform
+# ==========================================================
 - stage: VM_Creation
   displayName: 'Stage 1: Create Ubuntu VM via Terraform'
   jobs:
@@ -49,11 +48,12 @@ stages:
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
       displayName: 'Terraform Apply for VM'
 
-# -------------------------------
-# Stage 2 – Install DevOps Tools
-# -------------------------------
+
+# ==========================================================
+# Stage 2 – Install DevOps Tools on the new VM
+# ==========================================================
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools'
+  displayName: 'Stage 2: Install DevOps Tools on VM'
   dependsOn: VM_Creation
   jobs:
   - job: install_tools
@@ -62,7 +62,6 @@ stages:
       name: 'vadapav'
     variables:
       vm_public_ip: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
-      ado_pat: $(ado_pat)
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
@@ -71,7 +70,7 @@ stages:
         echo "Installing DevOps Tools on VM $vm_public_ip..."
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
-        # Ensure Terraform is installed on this agent too
+        # Ensure Terraform is installed
         terraform -v || {
           echo "Installing Terraform..."
           curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
@@ -83,12 +82,9 @@ stages:
         terraform init
         terraform validate
 
-        echo "Planning Terraform apply for DevOps tools..."
         terraform plan \
           -var "vm_public_ip=$(vm_public_ip)" \
-          -var "ado_pat=$(ado_pat)" \
           -out=tfplan
 
-        echo "Applying Terraform plan to execute remote-exec on new VM..."
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
