@@ -28,7 +28,7 @@ stages:
               rm terraform_1.7.5_linux_amd64.zip
               terraform -v
             displayName: 'Install Terraform'
-          - script: echo "##vso[task.setvariable variable=terraform_installed;isOutput=true]true" 
+          - script: echo "##vso[task.setvariable variable=terraform_installed;isOutput=true]true"
             name: set_tf_flag
 
   # --------------------------------------------------------------------
@@ -50,12 +50,8 @@ stages:
             path: vm-setup-azure-devops-tools
 
           - script: |
-              echo "=== Installing prerequisites (unzip, curl, git, jq) ==="
-              sudo yum install -y unzip curl git jq || \
-              (while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
-                 echo "Waiting for apt lock..."
-                 sleep 5
-               done && sudo apt-get update -y && sudo apt-get install -y unzip curl git jq)
+              echo "=== Installing prerequisites (unzip, curl, git, jq) on RHEL ==="
+              sudo yum install -y unzip curl git jq
 
               echo "=== Running Terraform to create VM ==="
               cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
@@ -63,10 +59,10 @@ stages:
               terraform apply -auto-approve
 
               VM_IP=$(terraform output -json public_ip_addresses | jq -r '.[0]')
-              echo "✅ VM Public IP: $VM_IP"
-
+              echo "VM Public IP: $VM_IP"
+  
               if [ -z "$VM_IP" ]; then
-                echo "❌ ERROR: VM IP is empty. Exiting..."
+                echo "ERROR: VM IP is empty. Exiting..."
                 exit 1
               fi
 
@@ -137,17 +133,25 @@ stages:
               echo "=== Preparing Azure credentials for Ansible ==="
               cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-ansible
 
+              # Install Ansible if missing (RHEL)
+              if ! command -v ansible-playbook >/dev/null 2>&1; then
+                sudo yum install -y epel-release
+                sudo yum install -y ansible
+              fi
+              ansible --version
+
+              # Write Azure credentials
               cat <<EOF > /home/docker/azure_env.sh
               export AZ_SUBSCRIPTION_ID=$AZ_SUBSCRIPTION_ID
               export AZ_CLIENT_ID=$AZ_CLIENT_ID
               export AZ_CLIENT_SECRET=$AZ_CLIENT_SECRET
               export AZ_TENANT_ID=$AZ_TENANT_ID
               EOF
-
+              
               chmod +x /home/docker/azure_env.sh
               echo "✅ Azure credentials written to /home/docker/azure_env.sh"
 
-              echo "=== Running Ansible for AKS deployment ==="
+              # Run Ansible playbook
               ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
             displayName: 'Run Ansible for AKS'
             env:
