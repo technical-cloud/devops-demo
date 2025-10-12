@@ -1,27 +1,78 @@
-variable "vm_public_ip" {
-  description = "Public IP of the created VM"
-  type        = string
-}
+trigger: none
 
-resource "null_resource" "install_devops_tools" {
-  depends_on = [azurerm_linux_virtual_machine.vipin_vm_local]
+variables:
+  org_url: "https://dev.azure.com/vadapavsamosa/user19"
+  existing_agent: "vipin-agent-machine"
+  ado_pat: "<YOUR_PERSONAL_ACCESS_TOKEN>"
+  vm_public_ip: ""  # Will be set after Stage 1
 
-  connection {
-    type     = "ssh"
-    host     = azurerm_linux_virtual_machine.vipin_vm_local[0].public_ip_address
-    user     = "docker"
-    password = "Docker@12345"
-  }
+pool:
+  name: 'vadapav'
 
-  provisioner "file" {
-    source      = "${path.module}/cloudinit.sh"
-    destination = "/tmp/cloudinit.sh"
-  }
+stages:
 
-  provisioner "remote-exec" {
-    inline = [
-      "sudo chmod +x /tmp/cloudinit.sh",
-      "sudo /tmp/cloudinit.sh"
-    ]
-  }
-}
+# -------------------------------
+# Stage 1 – Create Ubuntu VM via Terraform
+# -------------------------------
+- stage: VM_Creation
+  displayName: 'Stage 1: Create Ubuntu VM via Terraform'
+  jobs:
+  - job: create_vm
+    displayName: 'Terraform Apply for VM'
+    pool:
+      name: 'vadapav'
+      demands:
+        - agent.name -equals $(existing_agent)
+    steps:
+    - checkout: self
+      path: vm-setup-azure-devops-tools
+
+    - script: |
+        echo "Updating prerequisites..."
+        sudo apt-get update -y
+        sudo apt-get install -y unzip curl
+
+        echo "Installing Terraform..."
+        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        unzip terraform_1.7.6_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -v
+
+        echo "Running Terraform to create VM..."
+        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
+        terraform init
+        terraform validate
+        terraform apply -auto-approve
+
+        # Capture VM public IP
+        VM_IP=$(terraform output -raw public_ip_addresses)
+        echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
+        echo "VM Public IP: $VM_IP"
+      displayName: 'Terraform Apply for VM'
+
+# -------------------------------
+# Stage 2 – Install DevOps Tools on new VM
+# -------------------------------
+- stage: Install_Tools
+  displayName: 'Stage 2: Install DevOps Tools on VM'
+  dependsOn: VM_Creation
+  jobs:
+  - job: install_tools
+    displayName: 'Install DevOps Tools on new VM'
+    pool:
+      name: 'vadapav'   # Stage 2 runs on existing agent
+    variables:
+      VM_IP: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
+    steps:
+    - checkout: self
+      path: vm-setup-azure-devops-tools
+
+    - script: |
+        echo "Installing DevOps Tools on VM $VM_IP via Terraform..."
+        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
+
+        terraform init
+        terraform validate
+        terraform plan -var "vm_public_ip=$(VM_IP)" -out=tfplan
+        terraform apply -auto-approve tfplan
+      displayName: 'Terraform Apply for DevOps Tools'
