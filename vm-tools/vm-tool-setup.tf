@@ -1,12 +1,12 @@
-variable "vm_public_ip" {
-  description = "Public IP of the created VM"
-  type        = string
-}
-
+# -------------------------------
+# Null resource to install DevOps tools on new VM
+# -------------------------------
 resource "null_resource" "install_devops_tools" {
+  depends_on = [azurerm_linux_virtual_machine.vipin_vm_local]
+
   connection {
     type     = "ssh"
-    host     = var.vm_public_ip
+    host     = azurerm_linux_virtual_machine.vipin_vm_local[0].public_ip_address
     user     = "docker"
     password = "Docker@12345"   # Or use key authentication
   }

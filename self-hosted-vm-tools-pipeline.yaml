@@ -50,29 +50,31 @@ stages:
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install DevOps Tools on New Ubuntu VM
+# Stage 2 – Install DevOps Tools via remote-exec
 # -------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools'
+  displayName: 'Stage 2: Install DevOps Tools on New VM'
   dependsOn: VM_Creation
   jobs:
   - job: install_tools
-    displayName: 'Install DevOps Tools on VM'
+    displayName: 'Install DevOps Tools on VM via Terraform'
     pool:
       name: 'vadapav'
-      # This runs on the self-hosted agent, but connects via SSH to new VM
-    variables:
-      VM_IP: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
+      # Runs on existing agent, connects to new VM via SSH
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing DevOps Tools on VM $VM_IP via Terraform null_resource..."
-        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
+        echo "Running Terraform to install DevOps tools on new VM..."
+        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
 
         terraform init
         terraform validate
-        terraform plan -var "vm_public_ip=$(VM_IP)" -out=tfplan
+
+        echo "Planning Terraform apply for remote-exec..."
+        terraform plan -out=tfplan
+
+        echo "Applying Terraform plan to execute remote-exec on new VM..."
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
