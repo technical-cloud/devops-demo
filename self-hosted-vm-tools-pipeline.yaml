@@ -1,25 +1,18 @@
 trigger: none
 
-# -------------------------------
-# Hardcoded Variables
-# -------------------------------
 variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   agent_pool: "vadapav"
   agent_name: "vipin-agent-machine"
   ado_pat: "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
 
-# -------------------------------
-# Global Pool
-# -------------------------------
 pool:
   name: 'vadapav'
-  agent: 'vipin-agent-machine'
 
-# -------------------------------
-# Stage 1 – Create Self-Hosted VM
-# -------------------------------
 stages:
+# -------------------------------
+# Stage 1 – Create VM
+# -------------------------------
 - stage: VM_Creation_using_existing_Self_Hosted_Agent
   displayName: 'Create Self-Hosted VM using Terraform'
   jobs:
@@ -30,25 +23,29 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
+        echo "Installing Terraform..."
+        sudo apt-get update
+        sudo apt-get install -y unzip curl
+        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        unzip terraform_1.7.6_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+
         echo "Creating folder for VM setup code..."
         sudo mkdir -p /root/vm-setup
 
-        echo "Copying Terraform VM setup code to /root/vm-setup..."
+        echo "Copying Terraform VM setup code..."
         sudo cp -r $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup/* /root/vm-setup/
 
         cd /root/vm-setup
-        ls -l
-
-        echo "Running Terraform to create VM..."
         terraform init
         terraform validate
         terraform plan -out=tfplan
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for VM Setup'
 
-# ---------------------------------------------------------
+# -------------------------------
 # Stage 2 – Wait until new agent is ready
-# ---------------------------------------------------------
+# -------------------------------
 - stage: Wait_for_New_Agent
   displayName: 'Wait for vipin-agent registration'
   dependsOn: VM_Creation_using_existing_Self_Hosted_Agent
@@ -80,9 +77,9 @@ stages:
         exit 1
       displayName: 'Wait for agent to be online'
 
-# ---------------------------------
+# -------------------------------
 # Stage 3 – Install Tools on New VM
-# ---------------------------------
+# -------------------------------
 - stage: Install_tools_on_hosted_vm
   displayName: 'Install DevOps Tools on Newly Created Self-Hosted VM'
   dependsOn: Wait_for_New_Agent
@@ -93,22 +90,14 @@ stages:
       name: 'vadapav'
       demands:
         - agent.name -equals $(agent_name)
-
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Creating folder for tools setup code..."
         sudo mkdir -p /root/vm-tools
-
-        echo "Copying Terraform tools setup code to /root/vm-tools..."
         sudo cp -r $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools/* /root/vm-tools/
-
         cd /root/vm-tools
-        ls -l
-
-        echo "Running Terraform to install DevOps tools..."
         terraform init
         terraform validate
         terraform plan -out=tfplan
