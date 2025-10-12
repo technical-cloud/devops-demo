@@ -9,9 +9,9 @@ pool:
 
 stages:
 
-# ==========================================================
-# Stage 1 – Create Ubuntu VM via Terraform
-# ==========================================================
+# --------------------------------------------------------------------
+# 🧱 Stage 1 — Create Ubuntu VM using Terraform
+# --------------------------------------------------------------------
 - stage: VM_Creation
   displayName: 'Stage 1: Create Ubuntu VM via Terraform'
   jobs:
@@ -26,53 +26,59 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing prerequisites..."
-        sudo yum update -y
-        sudo yum install -y unzip curl git
-
-        echo "Installing Terraform..."
+        echo "=== Installing Terraform and creating VM ==="
+        sudo yum install -y unzip curl git || sudo apt-get install -y unzip curl git
         curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
         unzip terraform_1.7.6_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
         terraform -v
 
-        echo "Running Terraform to create VM..."
+        echo "=== Running Terraform for VM provisioning ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
         terraform init
-        terraform validate
         terraform apply -auto-approve
 
-        # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
-        echo "VM Public IP: $VM_IP"
+        echo "✅ VM Public IP: $VM_IP"
+
+        # Export VM IP to next stage
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
+      name: set_vm_ip          # <-- required for stageDependencies
       displayName: 'Terraform Apply for VM'
 
 
-# ==========================================================
-# Stage 2 – Install DevOps Tools on the new VM
-# ==========================================================
+# --------------------------------------------------------------------
+# 🧰 Stage 2 — Install DevOps Tools on new VM
+# --------------------------------------------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on VM'
+  displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
+  variables:
+    vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
+
   jobs:
   - job: install_tools
     displayName: 'Install DevOps Tools via Terraform'
     pool:
       name: 'vadapav'
-    variables:
-      vm_public_ip: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
+
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
+    # Debug print to confirm the IP value before Terraform
     - script: |
-        echo "Installing DevOps Tools on VM $vm_public_ip..."
+        echo "=============================="
+        echo "VM IP received from Stage 1: $(vm_public_ip)"
+        echo "=============================="
+      displayName: 'Debug — Verify VM IP'
+
+    - script: |
+        echo "=== Running Terraform for DevOps Tools installation ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
-        # Ensure Terraform is installed
         terraform -v || {
-          echo "Installing Terraform..."
+          echo "Terraform not found — installing..."
           curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
           unzip terraform_1.7.6_linux_amd64.zip
           sudo mv terraform /usr/local/bin/
@@ -81,10 +87,6 @@ stages:
 
         terraform init
         terraform validate
-
-        terraform plan \
-          -var "vm_public_ip=$(vm_public_ip)" \
-          -out=tfplan
-
+        terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
