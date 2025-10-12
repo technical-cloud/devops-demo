@@ -27,16 +27,14 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        set -e
         echo "Installing prerequisites..."
-        sudo apt-get update -y
-        sudo apt-get install -y unzip curl
+        sudo yum update -y
+        sudo yum install -y unzip curl git
 
         echo "Installing Terraform..."
         curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
         unzip terraform_1.7.6_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
-        sudo chmod +x /usr/local/bin/terraform
         terraform -v
 
         echo "Running Terraform to create VM..."
@@ -52,7 +50,7 @@ stages:
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install DevOps Tools via remote-exec
+# Stage 2 – Install DevOps Tools on New VM
 # -------------------------------
 - stage: Install_Tools
   displayName: 'Stage 2: Install DevOps Tools on New VM'
@@ -69,16 +67,12 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        set -e
-        echo "Running Terraform to install DevOps tools on VM $VM_IP..."
+        echo "Installing DevOps Tools on VM $VM_IP via Terraform null_resource..."
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
         terraform init
         terraform validate
 
-        echo "Planning Terraform apply for remote-exec..."
-        terraform plan -var "vm_public_ip=$(VM_IP)" -out=tfplan
-
-        echo "Applying Terraform plan to execute remote-exec on new VM..."
+        terraform plan -var "vm_public_ip=$(VM_IP)" -var "ado_pat=$(ado_pat)" -out=tfplan
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
