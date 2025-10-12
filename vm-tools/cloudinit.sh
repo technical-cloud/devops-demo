@@ -42,15 +42,3 @@ rm -f kubectl
 # -----------------------
 echo "Installing Helm..."
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# -----------------------
-# Terraform
-# -----------------------
-echo "Installing Terraform..."
-curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
-unzip terraform_1.7.6_linux_amd64.zip
-sudo mv terraform /usr/local/bin/
-sudo chmod +x /usr/local/bin/terraform
-rm terraform_1.7.6_linux_amd64.zip
-
-echo "Git and all DevOps tools installed successfully!"
