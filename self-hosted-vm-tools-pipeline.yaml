@@ -4,7 +4,7 @@ variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   agent_pool: "vadapav"
   existing_agent: "vipin-agent-machine"
-  ado_pat = "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
+  ado_pat : "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
   new_vm_agent_name: "vm-agent-$(Build.BuildId)"
 
 pool:
