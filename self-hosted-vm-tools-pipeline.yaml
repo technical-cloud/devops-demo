@@ -1,15 +1,25 @@
 trigger: none
 
+# -------------------------------
+# Hardcoded Variables
+# -------------------------------
 variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   agent_pool: "vadapav"
   agent_name: "vipin-agent-machine"
   ado_pat: "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
 
+# -------------------------------
+# Global Pool
+# -------------------------------
 pool:
   name: 'vadapav'
 
+# -------------------------------
+# Stages
+# -------------------------------
 stages:
+
 # -------------------------------
 # Stage 1 – Create VM
 # -------------------------------
@@ -18,17 +28,20 @@ stages:
   jobs:
   - job: checkout_code_vm_setup
     displayName: 'Checkout and Run Terraform for VM Setup'
+    pool:
+      name: 'vadapav'
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
     - script: |
         echo "Installing Terraform..."
-        sudo apt-get update
+        sudo apt-get update -y
         sudo apt-get install -y unzip curl
         curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
         unzip terraform_1.7.6_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
+        terraform -v
 
         echo "Creating folder for VM setup code..."
         sudo mkdir -p /root/vm-setup
@@ -52,6 +65,8 @@ stages:
   jobs:
   - job: wait_for_agent_registration
     displayName: 'Check periodically until vipin-agent is online'
+    pool:
+      name: 'vadapav'
     steps:
     - script: |
         sudo apt-get update && sudo apt-get install -y jq
@@ -65,7 +80,7 @@ stages:
             | jq -r ".value[0].agents[] | select(.name==\"$(agent_name)\") | .status")
 
           if [[ "$online" == "online" ]]; then
-            echo "$(agent_name) is online and ready!"
+            echo "✅ $(agent_name) is online and ready!"
             exit 0
           fi
 
@@ -73,7 +88,7 @@ stages:
           sleep 30
         done
 
-        echo "$(agent_name) did not come online in expected time!"
+        echo "❌ $(agent_name) did not come online in expected time!"
         exit 1
       displayName: 'Wait for agent to be online'
 
@@ -98,6 +113,8 @@ stages:
         sudo mkdir -p /root/vm-tools
         sudo cp -r $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools/* /root/vm-tools/
         cd /root/vm-tools
+
+        echo "Initializing and applying Terraform for tool setup..."
         terraform init
         terraform validate
         terraform plan -out=tfplan
