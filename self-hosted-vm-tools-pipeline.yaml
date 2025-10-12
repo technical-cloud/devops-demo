@@ -27,25 +27,26 @@ stages:
 
     - script: |
         echo "=== Installing prerequisites ==="
-        # Install curl, unzip, git (RHEL or Ubuntu)
         sudo yum install -y unzip curl git || sudo apt-get install -y unzip curl git
 
         echo "=== Installing Terraform ==="
         curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
         unzip terraform_1.7.6_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
+        sudo chmod +x /usr/local/bin/terraform
         terraform -v
 
         echo "=== Running Terraform to create VM ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
         terraform init
+        terraform validate
         terraform apply -auto-approve
 
         # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
         echo "✅ VM Public IP: $VM_IP"
 
-        # Export VM IP for next stage
+        # Export VM IP to next stage
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
       name: set_vm_ip
       displayName: 'Terraform Apply for VM'
@@ -69,19 +70,18 @@ stages:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
-    # Debug: confirm VM IP is passed correctly
+    # Debug — confirm VM IP is passed correctly
     - script: |
         echo "=============================="
         echo "VM IP received from Stage 1: $(vm_public_ip)"
         echo "=============================="
       displayName: 'Debug — Verify VM IP'
 
-    # Install DevOps tools on VM using Terraform and remote-exec
     - script: |
         echo "=== Running Terraform for DevOps Tools installation ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
-        # Install Terraform if missing
+        # Install Terraform on this agent if not already installed
         terraform -v || {
           echo "Terraform not found — installing..."
           curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
@@ -93,6 +93,8 @@ stages:
 
         terraform init
         terraform validate
-        terraform plan -var "vm_public_ip=$(vm_public_ip)" -var "agent_user=docker" -var "agent_pass=Docker@12345" -out=tfplan
+
+        echo "Planning Terraform apply..."
+        terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
