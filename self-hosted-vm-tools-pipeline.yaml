@@ -40,13 +40,17 @@ stages:
         terraform init
         terraform apply -auto-approve
 
-        # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
         echo "✅ VM Public IP: $VM_IP"
 
-        # Export VM IP to next stage
+        if [ -z "$VM_IP" ]; then
+          echo "❌ ERROR: VM IP is empty. Exiting..."
+          exit 1
+        fi
+
+        # Export VM IP to Stage 2
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
-      name: set_vm_ip
+      name: set_vm_ip  # Important: this name is used to reference output
       displayName: 'Terraform Apply for VM'
 
 # --------------------------------------------------------------------
@@ -56,6 +60,7 @@ stages:
   displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
   variables:
+    # Correct reference to Stage 1 output
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
 
   jobs:
@@ -68,11 +73,16 @@ stages:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
-    # Debug — verify VM IP is passed
+    # Debug — verify VM IP is passed correctly
     - script: |
         echo "=============================="
         echo "VM IP received from Stage 1: $(vm_public_ip)"
         echo "=============================="
+
+        if [ -z "$(vm_public_ip)" ]; then
+          echo "❌ ERROR: VM IP is empty in Stage 2. Exiting..."
+          exit 1
+        fi
       displayName: 'Debug — Verify VM IP'
 
     - script: |
