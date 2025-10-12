@@ -28,7 +28,7 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Updating and installing prerequisites on existing agent..."
+        echo "Updating and installing prerequisites..."
         sudo apt-get update -y
         sudo apt-get install -y unzip curl
 
@@ -51,16 +51,17 @@ stages:
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install Tools on new VM
+# Stage 2 – Install Tools on VM
 # -------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on Ubuntu VM'
+  displayName: 'Stage 2: Install DevOps Tools on New VM'
   dependsOn: VM_Creation
   jobs:
-  - job: install_tools
-    displayName: 'Terraform Apply for DevOps Tools'
+  - job: install_tools_on_vm
+    displayName: 'Terraform Remote-Exec for DevOps Tools'
     pool:
-      name: 'vadapav'   # No demands here; will SSH into new VM
+      name: 'vadapav'
+      # ✅ no demands for vipin-agent-machine
     variables:
       VM_IP: $[ dependencies.VM_Creation.outputs['create_vm.VM_IP'] ]
     steps:
@@ -68,14 +69,14 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing DevOps Tools on VM $VM_IP via Terraform..."
+        echo "Installing DevOps Tools on VM $VM_IP..."
         cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools
 
-        echo "Installing Terraform on new VM via remote-exec (if not installed by cloud-init)..."
-        # terraform is installed via cloud-init, so this can be skipped if cloud-init succeeds
-
+        echo "Initializing Terraform..."
         terraform init
         terraform validate
         terraform plan -var "vm_public_ip=$VM_IP" -out=tfplan
         terraform apply -auto-approve tfplan
-      displayName: 'Terraform Apply for DevOps Tools'
+
+        echo "✅ DevOps tools installation completed on VM $VM_IP"
+      displayName: 'Terraform Remote-Exec on New VM'
