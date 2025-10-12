@@ -10,64 +10,58 @@ pool:
 stages:
 
 # --------------------------------------------------------------------
-# 🧱 Stage 1 — Create Ubuntu VM using Terraform
+# Stage 1 — Create Ubuntu VM using Terraform
 # --------------------------------------------------------------------
 - stage: VM_Creation
-  displayName: "Stage 1: Create Ubuntu VM via Terraform"
+  displayName: 'Stage 1: Create Ubuntu VM via Terraform'
   jobs:
   - job: create_vm
-    displayName: "Terraform Apply for VM"
+    displayName: 'Terraform Apply for VM'
     pool:
       name: 'vadapav'
       demands:
         - agent.name -equals $(existing_agent)
-
     steps:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "=== Installing Terraform and creating VM ==="
-        # Install prerequisites (RHEL + fallback for Ubuntu agents)
-        sudo yum install -y yum-utils unzip curl git || sudo apt-get install -y unzip curl git
+        echo "=== Installing prerequisites ==="
+        # Install curl, unzip, git (RHEL or Ubuntu)
+        sudo yum install -y unzip curl git || sudo apt-get install -y unzip curl git
 
-        # Install Terraform via official repo for RHEL / fallback for Ubuntu
-        if command -v yum >/dev/null 2>&1; then
-          sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
-          sudo yum -y install terraform
-        else
-          curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
-          unzip terraform_1.7.6_linux_amd64.zip
-          sudo mv terraform /usr/local/bin/
-          rm terraform_1.7.6_linux_amd64.zip
-        fi
-        terraform -version
+        echo "=== Installing Terraform ==="
+        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+        unzip terraform_1.7.6_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -v
 
-        echo "=== Running Terraform for VM provisioning ==="
+        echo "=== Running Terraform to create VM ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
         terraform init
         terraform apply -auto-approve
 
+        # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
         echo "✅ VM Public IP: $VM_IP"
 
-        # Export VM IP to next stage
+        # Export VM IP for next stage
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
       name: set_vm_ip
-      displayName: "Terraform Apply for VM"
+      displayName: 'Terraform Apply for VM'
 
 # --------------------------------------------------------------------
-# 🧰 Stage 2 — Install DevOps Tools on new Ubuntu VM
+# Stage 2 — Install DevOps Tools on new VM
 # --------------------------------------------------------------------
 - stage: Install_Tools
-  displayName: "Stage 2: Install DevOps Tools on new VM"
+  displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
 
   jobs:
   - job: install_tools
-    displayName: "Install DevOps Tools via Terraform"
+    displayName: 'Install DevOps Tools via Terraform'
     pool:
       name: 'vadapav'
 
@@ -75,30 +69,30 @@ stages:
     - checkout: self
       path: vm-setup-azure-devops-tools
 
-    # Debug print to confirm the VM IP value
+    # Debug: confirm VM IP is passed correctly
     - script: |
         echo "=============================="
         echo "VM IP received from Stage 1: $(vm_public_ip)"
         echo "=============================="
-      displayName: "Debug — Verify VM IP"
+      displayName: 'Debug — Verify VM IP'
 
-    # Run Terraform to provision DevOps tools on new VM
+    # Install DevOps tools on VM using Terraform and remote-exec
     - script: |
         echo "=== Running Terraform for DevOps Tools installation ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
-        # Install Terraform if not present (on RHEL agent)
-        if ! command -v terraform >/dev/null 2>&1; then
-          echo "Terraform not found — installing via yum..."
-          sudo yum install -y yum-utils
-          sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
-          sudo yum -y install terraform
-        fi
-        terraform -version
+        # Install Terraform if missing
+        terraform -v || {
+          echo "Terraform not found — installing..."
+          curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
+          unzip terraform_1.7.6_linux_amd64.zip
+          sudo mv terraform /usr/local/bin/
+          sudo chmod +x /usr/local/bin/terraform
+          rm terraform_1.7.6_linux_amd64.zip
+        }
 
-        # Run Terraform plan/apply
         terraform init
         terraform validate
-        terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
+        terraform plan -var "vm_public_ip=$(vm_public_ip)" -var "agent_user=docker" -var "agent_pass=Docker@12345" -out=tfplan
         terraform apply -auto-approve tfplan
-      displayName: "Terraform Apply for DevOps Tools"
+      displayName: 'Terraform Apply for DevOps Tools'
