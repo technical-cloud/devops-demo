@@ -7,7 +7,7 @@ exec 2>&1
 
 echo "Updating system packages..."
 sudo yum update -y || sudo apt-get update -y
-sudo yum install -y unzip curl git || sudo apt-get install -y unzip curl git
+sudo yum install -y unzip curl git
 
 echo "Installing Terraform 1.7.5..."
 curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
