@@ -3,7 +3,7 @@ trigger: none
 variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   existing_agent: "vipin-agent-machine"
-  ado_pat: "<YOUR_PERSONAL_ACCESS_TOKEN>"  # Use secure pipeline variable
+  ado_pat: "<YOUR_PERSONAL_ACCESS_TOKEN>"  # Use secure variable
   vm_public_ip: ""  # Will be set after Stage 1
 
 pool:
@@ -12,7 +12,7 @@ pool:
 stages:
 
 # -------------------------------
-# Stage 1 – Create VM & Install Terraform
+# Stage 1 – Create Ubuntu VM
 # -------------------------------
 - stage: VM_Creation
   displayName: 'Stage 1: Create Ubuntu VM via Terraform'
@@ -44,21 +44,21 @@ stages:
         terraform validate
         terraform apply -auto-approve
 
-        # Capture VM public IP as pipeline variable
+        # Capture VM public IP as pipeline output variable
         VM_IP=$(terraform output -raw public_ip_addresses)
         echo "VM Public IP: $VM_IP"
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install DevOps Tools on New Ubuntu VM
+# Stage 2 – Install DevOps Tools on New VM
 # -------------------------------
 - stage: Install_Tools
   displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
   jobs:
   - job: install_tools
-    displayName: 'Terraform Apply for DevOps Tools'
+    displayName: 'Install DevOps Tools on new VM via Terraform'
     pool:
       name: 'vadapav'
     variables:
@@ -68,7 +68,7 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing DevOps Tools on VM $VM_IP via Terraform null_resource..."
+        echo "Installing DevOps Tools on VM $(VM_IP) via Terraform null_resource..."
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
         terraform init
