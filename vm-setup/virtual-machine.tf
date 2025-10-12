@@ -7,7 +7,6 @@ resource "azurerm_public_ip" "vipin_public_ip_local" {
   sku                 = "Standard"
 }
 
-# Network Interface
 resource "azurerm_network_interface" "vipin_nic_local" {
   count               = length(var.subnetname)
   name                = "vipin-nic-${count.index}"
@@ -16,13 +15,12 @@ resource "azurerm_network_interface" "vipin_nic_local" {
 
   ip_configuration {
     name                          = "internal"
-    subnet_id = azurerm_subnet.vipin_subnet_local[count.index].id
+    subnet_id                     = azurerm_subnet.vipin_subnet_local[count.index].id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vipin_public_ip_local[count.index].id
   }
 }
 
-# Linux VM with Cloud-init
 resource "azurerm_linux_virtual_machine" "vipin_vm_local" {
   count                           = length(var.subnetname)
   name                            = "vipin-vm-${count.index}"
@@ -49,13 +47,8 @@ resource "azurerm_linux_virtual_machine" "vipin_vm_local" {
     version   = "latest"
   }
 
-  custom_data = base64encode(templatefile("${path.module}/cloudinit.sh", {
-  org_url    = var.org_url
-  ado_pat    = var.ado_pat
-  agent_pool = var.agent_pool
-  agent_name = var.agent_name
-}))
-
+  # Stage 1 cloudinit only prepares VM
+  custom_data = base64encode(file("${path.module}/cloudinit.sh"))
 }
 
 output "public_ip_addresses" {

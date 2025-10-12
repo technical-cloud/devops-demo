@@ -50,21 +50,3 @@ variable "nicname" {
 variable "nsgrules" {
   type = list(map(any))
 }
-
-variable "agent_pool" {
-  type = string
-}
-
-variable "agent_name" {
-  type = string
-}
-
-variable org_url {
-  type = string  
-}
-
-variable "ado_pat" {
-  description = "Azure DevOps PAT token"
-  type        = string
-  sensitive   = true
-}

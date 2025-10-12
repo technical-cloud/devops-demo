@@ -9,9 +9,9 @@ vnetaddr        = ["10.10.0.0/16"]
 subnetname      = ["vipin-subnet-1"]
 subnetaddr      = ["10.10.10.0/24"]
 nicname         = "vipin-demo-nic"
-org_url        = "https://dev.azure.com/vadapavsamosa/user19"
-agent_pool     = "vadapav"
-agent_name = "vipin-agent-machine"
+#org_url        = "https://dev.azure.com/vadapavsamosa/user19"
+#agent_pool     = "vadapav"
+#agent_name = "vipin-agent-machine"
 #ado_pat = "2hsB8h0MY96XhI4e9STeY2gwkVGGy8UDtoEDRIQzD5QzpmxABOxfJQQJ99BJACAAAAAp9R4wAAASAZDOmciV"
 #personal_access_token = "4sSzdH4CFyJWp3nSSoCWfiYaUotF4sZqlSu4tihSHTL5mgaHsbZPJQQJ99BJACAAAAAp9R4wAAASAZDO4fO3"
 nsgrules = [{ "rulename" = "sshrule", "priority" = "100", "dport" = "22", "protocol" = "Tcp" },
