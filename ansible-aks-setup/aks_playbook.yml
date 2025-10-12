@@ -1,0 +1,35 @@
+- name: Create AKS Cluster
+  hosts: localhost
+  vars:
+    aks_rg: vipin-aks-rg
+    aks_name: vipinAKS
+    aks_location: eastus
+    node_count: 2
+
+  tasks:
+    - name: Ensure separate resource group exists for AKS
+      shell: |
+        az group create --name {{ aks_rg }} --location {{ aks_location }}
+      register: rg_creation
+
+    - name: Create AKS cluster
+      shell: |
+        az aks create \
+          --resource-group {{ aks_rg }} \
+          --name {{ aks_name }} \
+          --node-count {{ node_count }} \
+          --enable-addons monitoring \
+          --generate-ssh-keys
+      register: aks_creation
+
+    - name: Get AKS credentials
+      shell: |
+        az aks get-credentials --resource-group {{ aks_rg }} --name {{ aks_name }} --overwrite-existing
+      register: aks_creds
+
+    - name: Verify AKS cluster
+      shell: kubectl get nodes -o wide
+      register: nodes
+
+    - debug:
+        var: nodes.stdout

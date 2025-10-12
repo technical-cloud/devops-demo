@@ -27,7 +27,7 @@ stages:
 
     - script: |
         echo "=== Installing prerequisites (unzip, curl, git, jq) ==="
-        sudo yum install -y unzip curl git jq || sudo apt-get install -y unzip curl git jq -y
+        sudo yum install -y unzip curl git jq
 
         echo "=== Installing Terraform 1.7.5 ==="
         curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
@@ -62,7 +62,6 @@ stages:
 - stage: Install_Tools
   displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
-  condition: succeeded('VM_Creation')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
 
@@ -103,39 +102,20 @@ stages:
         terraform apply -auto-approve tfplan
       displayName: 'Terraform Apply for DevOps Tools'
 
-# --------------------------------------------------------------------
-# Stage 3 — Create AKS Cluster using Ansible (invoked via Terraform)
-# --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Create AKS via Terraform + Ansible'
   dependsOn: Install_Tools
-  condition: succeeded('Install_Tools')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
   jobs:
   - job: create_aks
     pool:
       name: 'vadapav'
-
     steps:
     - checkout: self
-
     - script: |
-        echo "=== Preparing Azure credentials for Ansible ==="
+        echo "=== Running Terraform to trigger Ansible installation ==="
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-ansible
-
-        # Create environment file for Azure CLI auth inside VM
-        echo "export AZ_SUBSCRIPTION_ID=$(AZ_SUBSCRIPTION_ID)" > /home/docker/azure_env.sh
-        echo "export AZ_CLIENT_ID=$(AZ_CLIENT_ID)" >> /home/docker/azure_env.sh
-        echo "export AZ_CLIENT_SECRET=$(AZ_CLIENT_SECRET)" >> /home/docker/azure_env.sh
-        echo "export AZ_TENANT_ID=$(AZ_TENANT_ID)" >> /home/docker/azure_env.sh
-
-        echo "=== Running Terraform to install Ansible and deploy AKS ==="
         terraform init
         terraform apply -auto-approve -var "vm_public_ip=$(vm_public_ip)"
       displayName: 'Run Terraform + Ansible for AKS'
-      env:
-        AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
-        AZ_CLIENT_ID: $(AZ_CLIENT_ID)
-        AZ_CLIENT_SECRET: $(AZ_CLIENT_SECRET)
-        AZ_TENANT_ID: $(AZ_TENANT_ID)
