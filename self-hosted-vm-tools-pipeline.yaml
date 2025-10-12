@@ -4,7 +4,6 @@ variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   existing_agent: "vipin-agent-machine"
   ado_pat: "<YOUR_PERSONAL_ACCESS_TOKEN>"  # Use secure variable
-  vm_public_ip: ""  # Will be set after Stage 1
 
 pool:
   name: 'vadapav'
@@ -28,7 +27,7 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Updating prerequisites..."
+        echo "Installing prerequisites..."
         sudo apt-get update -y
         sudo apt-get install -y unzip curl
 
@@ -44,23 +43,24 @@ stages:
         terraform validate
         terraform apply -auto-approve
 
-        # Capture VM public IP as pipeline output variable
+        # Capture VM public IP
         VM_IP=$(terraform output -raw public_ip_addresses)
         echo "VM Public IP: $VM_IP"
         echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
       displayName: 'Terraform Apply for VM'
 
 # -------------------------------
-# Stage 2 – Install DevOps Tools on New VM
+# Stage 2 – Install DevOps Tools on New Ubuntu VM
 # -------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on new VM'
+  displayName: 'Stage 2: Install DevOps Tools'
   dependsOn: VM_Creation
   jobs:
   - job: install_tools
-    displayName: 'Install DevOps Tools on new VM via Terraform'
+    displayName: 'Install DevOps Tools on VM'
     pool:
       name: 'vadapav'
+      # This runs on the self-hosted agent, but connects via SSH to new VM
     variables:
       VM_IP: $[ dependencies.VM_Creation.outputs['create_vm.vm_public_ip'] ]
     steps:
@@ -68,7 +68,7 @@ stages:
       path: vm-setup-azure-devops-tools
 
     - script: |
-        echo "Installing DevOps Tools on VM $(VM_IP) via Terraform null_resource..."
+        echo "Installing DevOps Tools on VM $VM_IP via Terraform null_resource..."
         cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
 
         terraform init
