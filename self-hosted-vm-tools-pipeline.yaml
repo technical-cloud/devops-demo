@@ -1,104 +1,33 @@
-trigger: none
+Version      : 2.250.1
+Author       : Microsoft Corporation
+Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+==============================================================================
+Generating script.
+========================== Starting Command Output ===========================
+/usr/bin/bash --noprofile --norc /home/docker/https:/dev.azure.com/vadapavsamosa/user19/_temp/0d9d257a-f77d-40f6-90a3-01e908a7ba51.sh
+=== Installing prerequisites ===
+Hashicorp Stable - x86_64                       2.7 kB/s | 333  B     00:00    
+Errors during downloading metadata for repository 'hashicorp':
+  - Status code: 404 for https://rpm.releases.hashicorp.com/RHEL/9.4/x86_64/stable/repodata/repomd.xml (IP: 18.160.10.45)
+Error: Failed to download metadata for repo 'hashicorp': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried
+sudo: apt-get: command not found
+=== Installing Terraform ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
 
-variables:
-  org_url: "https://dev.azure.com/vadapavsamosa/user19"
-  existing_agent: "vipin-agent-machine"
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+curl: (22) The requested URL returned error: 404
+unzip:  cannot find or open terraform_1.7.6_linux_amd64.zip, terraform_1.7.6_linux_amd64.zip.zip or terraform_1.7.6_linux_amd64.zip.ZIP.
+mv: cannot stat 'terraform': No such file or directory
+/home/docker/https:/dev.azure.com/vadapavsamosa/user19/_temp/0d9d257a-f77d-40f6-90a3-01e908a7ba51.sh: line 8: terraform: command not found
+=== Running Terraform to create VM ===
+/home/docker/https:/dev.azure.com/vadapavsamosa/user19/_temp/0d9d257a-f77d-40f6-90a3-01e908a7ba51.sh: line 12: terraform: command not found
+/home/docker/https:/dev.azure.com/vadapavsamosa/user19/_temp/0d9d257a-f77d-40f6-90a3-01e908a7ba51.sh: line 13: terraform: command not found
+/home/docker/https:/dev.azure.com/vadapavsamosa/user19/_temp/0d9d257a-f77d-40f6-90a3-01e908a7ba51.sh: line 15: terraform: command not found
+✅ VM Public IP: 
+❌ ERROR: VM IP is empty. Exiting...
 
-pool:
-  name: 'vadapav'
-
-stages:
-
-# --------------------------------------------------------------------
-# Stage 1 — Create Ubuntu VM via Terraform
-# --------------------------------------------------------------------
-- stage: VM_Creation
-  displayName: 'Stage 1: Create Ubuntu VM via Terraform'
-  jobs:
-  - job: create_vm
-    displayName: 'Terraform Apply for VM'
-    pool:
-      name: 'vadapav'
-      demands:
-        - agent.name -equals $(existing_agent)
-    steps:
-    - checkout: self
-      path: vm-setup-azure-devops-tools
-
-    - script: |
-        echo "=== Installing prerequisites ==="
-        sudo yum install -y unzip curl git || sudo apt-get install -y unzip curl git
-
-        echo "=== Installing Terraform ==="
-        curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
-        unzip terraform_1.7.6_linux_amd64.zip
-        sudo mv terraform /usr/local/bin/
-        terraform -v
-
-        echo "=== Running Terraform to create VM ==="
-        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup
-        terraform init
-        terraform apply -auto-approve
-
-        VM_IP=$(terraform output -raw public_ip_addresses)
-        echo "✅ VM Public IP: $VM_IP"
-
-        if [ -z "$VM_IP" ]; then
-          echo "❌ ERROR: VM IP is empty. Exiting..."
-          exit 1
-        fi
-
-        # Export VM IP to Stage 2
-        echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
-      name: set_vm_ip  # Important: this name is used to reference output
-      displayName: 'Terraform Apply for VM'
-
-# --------------------------------------------------------------------
-# Stage 2 — Install DevOps Tools on the new VM
-# --------------------------------------------------------------------
-- stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on new VM'
-  dependsOn: VM_Creation
-  variables:
-    # Correct reference to Stage 1 output
-    vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
-  jobs:
-  - job: install_tools
-    displayName: 'Install DevOps Tools via Terraform'
-    pool:
-      name: 'vadapav'
-
-    steps:
-    - checkout: self
-      path: vm-setup-azure-devops-tools
-
-    # Debug — verify VM IP is passed correctly
-    - script: |
-        echo "=============================="
-        echo "VM IP received from Stage 1: $(vm_public_ip)"
-        echo "=============================="
-
-        if [ -z "$(vm_public_ip)" ]; then
-          echo "❌ ERROR: VM IP is empty in Stage 2. Exiting..."
-          exit 1
-        fi
-      displayName: 'Debug — Verify VM IP'
-
-    - script: |
-        echo "=== Running Terraform for DevOps Tools installation ==="
-        cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools
-
-        terraform -v || {
-          echo "Terraform not found — installing..."
-          curl -fLO https://releases.hashicorp.com/terraform/1.7.6/terraform_1.7.6_linux_amd64.zip
-          unzip terraform_1.7.6_linux_amd64.zip
-          sudo mv terraform /usr/local/bin/
-          rm terraform_1.7.6_linux_amd64.zip
-        }
-
-        terraform init
-        terraform validate
-        terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
-        terraform apply -auto-approve tfplan
-      displayName: 'Terraform Apply for DevOps Tools'
+##[error]Bash exited with code '1'.
+Finishing: Terraform Apply for VM
