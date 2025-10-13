@@ -44,6 +44,7 @@ resource "azurerm_linux_virtual_machine" "vipin_vm_local" {
     publisher = "RedHat"
     offer     = "RHEL"
     sku       = "9-Gen2"  
+    version = "latest"
   }
 
   # Stage 1 cloudinit only prepares VM
