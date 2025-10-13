@@ -1,14 +1,19 @@
 ---
-- name: Create AKS Cluster
+- name: Create AKS Cluster using Azure CLI
   hosts: localhost
   connection: local
-  vars:
-    resource_group: "my-aks-rg"
-    cluster_name: "my-aks-cluster"
+  gather_facts: no
+
+- var:
     location: "eastus2"
+    resource_group: "vipin-demo-resource-group"
+    aks_resource_group: "vipin-aks-rg"
+    cluster_name: "vipin-aks-cluster"
     node_count: 2
-    vm_size: "Standard_B2s"
+    vm_size: "Standard_DS2_v2"
+    
   tasks:
+
     - name: Login to Azure
       shell: |
         az login --service-principal \
@@ -16,24 +21,47 @@
           -p "{{ lookup('env', 'AZ_CLIENT_SECRET') }}" \
           --tenant "{{ lookup('env', 'AZ_TENANT_ID') }}"
         az account set --subscription "{{ lookup('env', 'AZ_SUBSCRIPTION_ID') }}"
+      register: login_result
+
+    - name: Check Azure login
+      debug:
+        var: login_result.stdout
 
     - name: Create resource group
-      azure.azcollection.azure_rm_resourcegroup:
-        name: "{{ resource_group }}"
-        location: "{{ location }}"
+      shell: |
+        az group create --name "{{ aks_resource_group }}" --location "{{ location }}"
+      register: rg_result
+
+    - name: Check Resource Group creation
+      debug:
+        var: rg_result.stdout
 
     - name: Create AKS cluster
-      azure.azcollection.azure_rm_aks:
-        name: "{{ cluster_name }}"
-        resource_group: "{{ resource_group }}"
-        dns_prefix: "vipinaks"
-        kubernetes_version: "1.29.0"
-        location: "{{ location }}"
-        node_count: "{{ node_count }}"
-        vm_size: "{{ vm_size }}"
-        enable_rbac: true
-        enable_managed_identity: true
+      shell: |
+        az aks create \
+          --name "{{ cluster_name }}" \
+          --resource-group "{{ resource_group }}" \
+          --dns-name-prefix "vipinaks" \
+          --kubernetes-version "1.29.0" \
+          --node-count "{{ node_count }}" \
+          --node-vm-size "{{ vm_size }}" \
+          --enable-rbac \
+          --enable-managed-identity
+      register: aks_result
+
+    - name: Check AKS creation
+      debug:
+        var: aks_result.stdout
 
     - name: Get AKS credentials
       shell: |
-        az aks get-credentials -g {{ resource_group }} -n {{ cluster_name }} --overwrite-existing
+        az aks get-credentials --resource-group "{{ resource_group }}" --name "{{ cluster_name }}" --overwrite-existing
+      register: creds_result
+
+    - name: Verify kubectl access
+      shell: kubectl get nodes
+      register: kubectl_result
+
+    - name: Show cluster nodes
+      debug:
+        var: kubectl_result.stdout
