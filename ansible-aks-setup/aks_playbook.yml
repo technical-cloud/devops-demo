@@ -4,10 +4,11 @@ variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   existing_agent: "vipin-agent-machine"
 
-# --------------------------------------------------------------------
-# Stage 0 — Install Terraform on agent
-# --------------------------------------------------------------------
 stages:
+
+# --------------------------------------------------------------------
+# Stage 0 — Install Terraform on RHEL agent
+# --------------------------------------------------------------------
 - stage: Setup_Terraform
   displayName: 'Stage 0: Install Terraform'
   jobs:
@@ -48,7 +49,7 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Installing prerequisites on agent ==="
+            echo "=== Installing prerequisites on RHEL agent ==="
             sudo yum install -y unzip curl git jq
 
             echo "Pipeline workspace: $(Pipeline.Workspace)/s"
@@ -79,7 +80,7 @@ stages:
           name: set_vm_ip
 
 # --------------------------------------------------------------------
-# Stage 2 — Install DevOps Tools on Ubuntu VM
+# Stage 2 — Install DevOps Tools on the new VM
 # --------------------------------------------------------------------
 - stage: Install_Tools
   displayName: 'Stage 2: Install DevOps Tools on new VM'
@@ -109,7 +110,7 @@ stages:
             echo "Current directory: $(pwd)"
             ls -l
 
-            echo "=== Running Terraform for DevOps Tools installation on Ubuntu VM ==="
+            echo "=== Running Terraform for DevOps Tools installation ==="
             for i in {1..3}; do
               terraform init && terraform validate && terraform plan -var "vm_ip=$(vm_public_ip)" -out=tfplan && terraform apply -auto-approve tfplan && break || echo "Retrying Terraform ($i/3)..."
               sleep 5
@@ -117,13 +118,13 @@ stages:
           displayName: 'Terraform Apply for DevOps Tools'
 
 # --------------------------------------------------------------------
-# Stage 3 — Deploy AKS via Ansible on Ubuntu VM
+# Stage 3 — Deploy AKS via Ansible
 # --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Ansible'
   dependsOn: Install_Tools
   variables:
-    vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
+    vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_tf_flag.vm_public_ip'] ]
   jobs:
     - job: deploy_aks
       displayName: 'Deploy AKS via Ansible'
@@ -135,7 +136,7 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Preparing Azure credentials and installing Ansible on Ubuntu VM ==="
+            echo "=== Preparing Azure credentials for Ansible ==="
 
             # Debug workspace
             echo "Pipeline workspace: $(Pipeline.Workspace)/s"
@@ -151,12 +152,10 @@ stages:
             echo "Current directory: $(pwd)"
             ls -l
 
-            # Install Ansible if missing (Ubuntu)
+            # Install Ansible on RHEL agent
             if ! command -v ansible-playbook >/dev/null 2>&1; then
-              sudo apt-get update -y
-              sudo apt-get install -y software-properties-common
-              sudo apt-add-repository --yes --update ppa:ansible/ansible
-              sudo apt-get install -y ansible
+              sudo yum install -y epel-release
+              sudo yum install -y ansible
             fi
             ansible --version
 
@@ -167,5 +166,4 @@ stages:
             export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
             export AZ_TENANT_ID=${AZ_TENANT_ID}
             EOF
-            chmod +x /home/docker/azure_env.sh
-            echo "✅ Azure credentials written t
+            chmod +x /home/docker/azur
