@@ -1,6 +1,3 @@
-# --------------------------------------------------------------------
-# Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
-# --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Terraform + Ansible'
   dependsOn: Install_Tools
@@ -30,11 +27,11 @@
 
             echo "=== Creating Azure env file on Ubuntu VM via Terraform ==="
             cat <<EOF > azure_env.sh
-            export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
-            export AZ_CLIENT_ID=${AZ_CLIENT_ID}
-            export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
-            export AZ_TENANT_ID=${AZ_TENANT_ID}
-            EOF
+export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
+export AZ_CLIENT_ID=${AZ_CLIENT_ID}
+export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
+export AZ_TENANT_ID=${AZ_TENANT_ID}
+EOF
             chmod +x azure_env.sh
 
             echo "=== Initializing Terraform ==="
