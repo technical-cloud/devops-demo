@@ -131,12 +131,13 @@ stages:
         - script: |
             echo "=== Preparing Azure credentials for Ansible ==="
 
+            # Debug workspace
+            echo "Pipeline workspace: $(Pipeline.Workspace)"
+            ls -l $(Pipeline.Workspace)
+
             # Go to Ansible directory
             cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-ansible || exit 1
-
-            # Debug current folder and files
             echo "Current directory: $(pwd)"
-            echo "Files:"
             ls -l
 
             # Install Ansible if missing
