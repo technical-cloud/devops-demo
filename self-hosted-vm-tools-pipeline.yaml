@@ -8,6 +8,7 @@ pool:
   name: 'vadapav'
 
 stages:
+
 # --------------------------------------------------------------------
 # Stage 0 — Install Terraform once on RHEL agent
 # --------------------------------------------------------------------
@@ -22,12 +23,15 @@ stages:
           - agent.name -equals $(existing_agent)
       steps:
         - script: |
-            echo "=== Installing Terraform 1.7.5 ==="
+            echo "=== Installing Terraform 1.7.5 on RHEL agent ==="
+            sudo yum install -y unzip curl jq git || sudo dnf install -y unzip curl jq git
+
+            echo "=== Installing Terraform manually (for reliability) ==="
             curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
             unzip terraform_1.7.5_linux_amd64.zip
             sudo mv terraform /usr/local/bin/
             sudo chmod +x /usr/local/bin/terraform
-            rm terraform_1.7.5_linux_amd64.zip
+            rm -f terraform_1.7.5_linux_amd64.zip
             terraform -v
           displayName: 'Install Terraform'
 
@@ -43,7 +47,7 @@ stages:
   condition: succeeded('Setup_Terraform')
   jobs:
     - job: create_vm
-      displayName: 'Terraform Apply for VM'
+      displayName: 'Terraform Apply for VM (Ubuntu)'
       pool:
         name: 'vadapav'
         demands:
@@ -54,10 +58,10 @@ stages:
 
         - script: |
             echo "=== Installing prerequisites on RHEL agent ==="
-            sudo yum install -y unzip curl git jq
+            sudo yum install -y unzip curl git jq || sudo dnf install -y unzip curl git jq
 
-            echo "=== Running Terraform to create VM ==="
-            TERRAFORM_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-setup" | head -n 1)
+            echo "=== Running Terraform to create Ubuntu VM ==="
+            TERRAFORM_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-setup" | head -n 1)
             if [ -z "$TERRAFORM_DIR" ]; then
               echo "❌ ERROR: vm-setup folder not found!"
               exit 1
@@ -78,13 +82,13 @@ stages:
 
             echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
           name: set_vm_ip
-          displayName: 'Terraform Apply for VM'
+          displayName: 'Terraform Apply for Ubuntu VM'
 
 # --------------------------------------------------------------------
-# Stage 2 — Install DevOps Tools on the new VM
+# Stage 2 — Install DevOps Tools on Ubuntu VM
 # --------------------------------------------------------------------
 - stage: Install_Tools
-  displayName: 'Stage 2: Install DevOps Tools on new VM'
+  displayName: 'Stage 2: Install DevOps Tools on Ubuntu VM'
   dependsOn: VM_Creation
   condition: succeeded('VM_Creation')
   variables:
@@ -107,8 +111,8 @@ stages:
           displayName: 'Debug — Verify VM IP'
 
         - script: |
-            echo "=== Running Terraform for DevOps Tools installation ==="
-            TOOLS_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-tools" | head -n 1)
+            echo "=== Running Terraform for DevOps Tools installation (on Ubuntu) ==="
+            TOOLS_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-tools" | head -n 1)
             if [ -z "$TOOLS_DIR" ]; then
               echo "❌ ERROR: vm-tools folder not found!"
               exit 1
@@ -120,10 +124,10 @@ stages:
             terraform validate
             terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
             terraform apply -auto-approve tfplan
-          displayName: 'Terraform Apply for DevOps Tools'
+          displayName: 'Terraform Apply for DevOps Tools (Ubuntu)'
 
 # --------------------------------------------------------------------
-# Stage 3 — Deploy AKS Cluster via Ansible
+# Stage 3 — Deploy AKS Cluster via Ansible (Runs from RHEL Agent)
 # --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Ansible'
@@ -133,7 +137,7 @@ stages:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
   jobs:
     - job: deploy_aks
-      displayName: 'Deploy AKS via Ansible'
+      displayName: 'Deploy AKS via Ansible (Target: Ubuntu VM)'
       pool:
         name: 'vadapav'
         demands:
@@ -142,9 +146,8 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Preparing Azure credentials for Ansible on VM ==="
-
-            ANSIBLE_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-ansible" | head -n 1)
+            echo "=== Preparing Azure credentials for Ansible ==="
+            ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-ansible" | head -n 1)
             if [ -z "$ANSIBLE_DIR" ]; then
                 echo "❌ ERROR: vm-ansible folder not found!"
                 exit 1
@@ -154,14 +157,14 @@ stages:
             echo "Current directory: $(pwd)"
             ls -l
 
-            # Install Ansible if missing
+            # Ensure Ansible is available on RHEL agent
             if ! command -v ansible-playbook >/dev/null 2>&1; then
-                sudo yum install -y epel-release
-                sudo yum install -y ansible python3-pip
+                sudo yum install -y epel-release || true
+                sudo yum install -y ansible python3-pip || sudo dnf install -y ansible python3-pip
             fi
             ansible --version
 
-            # Write Azure credentials
+            # Azure credentials for Ansible
             cat <<EOF > /home/docker/azure_env.sh
             export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
             export AZ_CLIENT_ID=${AZ_CLIENT_ID}
@@ -170,10 +173,9 @@ stages:
             EOF
             chmod +x /home/docker/azure_env.sh
 
-            # Run Ansible playbook for AKS
-            echo "=== Running Ansible playbook for AKS ==="
+            echo "=== Running Ansible playbook for AKS cluster deployment ==="
             ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
-          displayName: 'Run Ansible for AKS'
+          displayName: 'Run Ansible for AKS Cluster Setup'
           env:
             AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
             AZ_CLIENT_ID: $(AZ_CLIENT_ID)
