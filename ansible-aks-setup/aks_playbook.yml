@@ -55,11 +55,11 @@ stages:
 
             # Debug workspace
             echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l $(Pipeline.Workspace)
-            ls -l $(Pipeline.Workspace)/s
+            ls -l "$(Pipeline.Workspace)"
+            ls -l "$(Pipeline.Workspace)/s"
 
-            # Correct repo folder path (update <repo-folder> to match your repo inside 's/')
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup || exit 1
+            # Navigate to Terraform folder (dynamic path)
+            cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
@@ -105,8 +105,8 @@ stages:
             echo "=============================="
 
         - script: |
-            # Correct path to vm-tools
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools || exit 1
+            # Navigate to Terraform tools folder
+            cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
@@ -142,10 +142,10 @@ stages:
 
             # Debug workspace
             echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l $(Pipeline.Workspace)/s
+            ls -l "$(Pipeline.Workspace)/s"
 
-            # Correct path to vm-ansible
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible || exit 1
+            # Navigate to Ansible folder
+            cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
