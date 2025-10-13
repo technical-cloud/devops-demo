@@ -7,11 +7,10 @@ variables:
 pool:
   name: 'vadapav'
 
-stages:
-
 # --------------------------------------------------------------------
 # Stage 0 — Install Terraform once on RHEL agent
 # --------------------------------------------------------------------
+stages:
 - stage: Setup_Terraform
   displayName: 'Stage 0: Install Terraform'
   jobs:
@@ -26,7 +25,7 @@ stages:
             echo "=== Installing Terraform 1.7.5 on RHEL agent ==="
             sudo yum install -y unzip curl jq git || sudo dnf install -y unzip curl jq git
 
-            echo "=== Installing Terraform manually (for reliability) ==="
+            echo "=== Installing Terraform manually (reliable) ==="
             curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
             unzip terraform_1.7.5_linux_amd64.zip
             sudo mv terraform /usr/local/bin/
@@ -47,7 +46,7 @@ stages:
   condition: succeeded('Setup_Terraform')
   jobs:
     - job: create_vm
-      displayName: 'Terraform Apply for VM (Ubuntu)'
+      displayName: 'Terraform Apply for Ubuntu VM'
       pool:
         name: 'vadapav'
         demands:
@@ -95,7 +94,7 @@ stages:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
   jobs:
     - job: install_tools
-      displayName: 'Install DevOps Tools via Terraform (on Ubuntu)'
+      displayName: 'Install DevOps Tools via Terraform (Ubuntu)'
       pool:
         name: 'vadapav'
         demands:
@@ -127,17 +126,17 @@ stages:
           displayName: 'Terraform Apply for DevOps Tools (Ubuntu)'
 
 # --------------------------------------------------------------------
-# Stage 3 — Create AKS Cluster via Ansible
+# Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
 # --------------------------------------------------------------------
 - stage: Create_AKS
-  displayName: 'Stage 3: Deploy AKS via Ansible'
+  displayName: 'Stage 3: Deploy AKS via Terraform + Ansible'
   dependsOn: Install_Tools
   condition: succeeded('Install_Tools')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
   jobs:
     - job: deploy_aks
-      displayName: 'Deploy AKS via Ansible (Target: Ubuntu VM)'
+      displayName: 'Deploy AKS via Terraform + Ansible (Ubuntu VM)'
       pool:
         name: 'vadapav'
         demands:
@@ -146,41 +145,23 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Preparing Azure credentials for Ansible ==="
-
-            # ✅ Updated folder name and dynamic find logic
+            echo "=== Locating ansible-aks-setup Terraform folder dynamically ==="
             ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "ansible-aks-setup" | head -n 1)
             if [ -z "$ANSIBLE_DIR" ]; then
                 echo "❌ ERROR: ansible-aks-setup folder not found!"
                 exit 1
             fi
-            echo "✅ Found Ansible directory: $ANSIBLE_DIR"
+            echo "✅ Found directory: $ANSIBLE_DIR"
 
             cd "$ANSIBLE_DIR" || exit 1
-            echo "Current directory: $(pwd)"
-            ls -l
 
-            # Ensure Ansible is available on RHEL agent
-            if ! command -v ansible-playbook >/dev/null 2>&1; then
-                sudo yum install -y epel-release || true
-                sudo yum install -y ansible python3-pip || sudo dnf install -y ansible python3-pip
-            fi
-            ansible --version
+            echo "=== Initializing Terraform ==="
+            terraform init
 
-            # Azure credentials for Ansible
-            cat <<EOF > /home/docker/azure_env.sh
-            export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
-            export AZ_CLIENT_ID=${AZ_CLIENT_ID}
-            export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
-            export AZ_TENANT_ID=${AZ_TENANT_ID}
-            EOF
-            chmod +x /home/docker/azure_env.sh
+            echo "=== Validating Terraform configuration ==="
+            terraform validate
 
-            echo "=== Running Ansible playbook for AKS cluster deployment ==="
-            ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
-          displayName: 'Run Ansible for AKS Deployment'
-          env:
-            AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
-            AZ_CLIENT_ID: $(AZ_CLIENT_ID)
-            AZ_CLIENT_SECRET: $(AZ_CLIENT_SECRET)
-            AZ_TENANT_ID: $(AZ_TENANT_ID)
+            echo "=== Running Terraform apply to copy and execute Ansible scripts ==="
+            terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
+            terraform apply -auto-approve tfplan
+          displayName: 'Terraform Apply for AKS via Ansible'
