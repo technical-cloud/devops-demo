@@ -19,7 +19,6 @@ variable "client_secret" {
   sensitive   = true
 }
 
-
 variable "vm_public_ip" {
   description = "Public IP of the VM to connect via SSH"
   type        = string

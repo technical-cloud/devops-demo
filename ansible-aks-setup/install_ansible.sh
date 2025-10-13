@@ -2,11 +2,11 @@
 set -e
 
 echo "=== Installing Ansible ==="
-sudo apt update -y || sudo yum update -y
-sudo apt install -y ansible python3-pip || sudo yum install -y ansible python3-pip
+sudo apt update -y
+sudo apt install -y ansible python3-pip
 
-echo "=== Installing Azure CLI and dependencies ==="
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+echo "=== Installing Azure CLI ==="
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 echo "=== Logging into Azure ==="
 source /home/docker/azure_env.sh
@@ -21,4 +21,5 @@ else
     echo "❌ Ansible playbook execution failed!"
     exit 1
 fi
+
 echo "=== AKS setup completed ==="

@@ -127,6 +127,7 @@ stages:
 
 # --------------------------------------------------------------------
 # Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
+# Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
 # --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Terraform + Ansible'
@@ -155,6 +156,15 @@ stages:
 
             cd "$ANSIBLE_DIR" || exit 1
 
+            echo "=== Creating Azure env file on Ubuntu VM via Terraform ==="
+            cat <<EOF > /home/docker/azure_env.sh
+            export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
+            export AZ_CLIENT_ID=${AZ_CLIENT_ID}
+            export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
+            export AZ_TENANT_ID=${AZ_TENANT_ID}
+            EOF
+            chmod +x /home/docker/azure_env.sh
+
             echo "=== Initializing Terraform ==="
             terraform init
 
@@ -165,3 +175,8 @@ stages:
             terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
             terraform apply -auto-approve tfplan
           displayName: 'Terraform Apply for AKS via Ansible'
+          env:
+            AZ_SUBSCRIPTION_ID: $(subscription_id)
+            AZ_CLIENT_ID: $(client_id)
+            AZ_CLIENT_SECRET: $(client_secret)
+            AZ_TENANT_ID: $(tenant_id)

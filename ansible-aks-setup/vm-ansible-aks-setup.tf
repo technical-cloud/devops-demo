@@ -1,7 +1,3 @@
-variable "vm_public_ip" {}
-variable "vm_username" { default = "docker" }
-variable "vm_password" { default = "Docker@12345" }
-
 resource "null_resource" "ansible_install" {
   connection {
     type     = "ssh"
