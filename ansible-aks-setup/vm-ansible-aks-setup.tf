@@ -6,6 +6,7 @@ resource "null_resource" "ansible_install" {
     password = var.vm_password
   }
 
+  # Copy necessary scripts to Ubuntu VM
   provisioner "file" {
     source      = "install_ansible.sh"
     destination = "/home/docker/install_ansible.sh"
@@ -21,14 +22,18 @@ resource "null_resource" "ansible_install" {
     destination = "/home/docker/azure_env.sh"
   }
 
+  # Install Ansible & Azure CLI, then run playbook
   provisioner "remote-exec" {
-  inline = [
-    "echo '=== Loading Azure credentials ==='",
-    "source /home/docker/azure_env.sh",
-    "echo '=== Logging into Azure ==='",
-    "az login --service-principal -u \"$AZ_CLIENT_ID\" -p \"$AZ_CLIENT_SECRET\" --tenant \"$AZ_TENANT_ID\""
-  ]
-}
+    inline = [
+      "chmod +x /home/docker/install_ansible.sh",
+      "bash /home/docker/install_ansible.sh"
+    ]
 
+    environment = {
+      AZ_SUBSCRIPTION_ID = var.subscription_id
+      AZ_CLIENT_ID       = var.client_id
+      AZ_CLIENT_SECRET   = var.client_secret
+      AZ_TENANT_ID       = var.tenant_id
+    }
   }
-
+}
