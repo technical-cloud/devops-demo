@@ -48,14 +48,13 @@ stages:
           - agent.name -equals vipin-agent-machine
       steps:
         - checkout: self
-          path: vm-setup-azure-devops-tools
 
         - script: |
             echo "=== Installing prerequisites (unzip, curl, git, jq) on RHEL ==="
             sudo dnf install -y unzip curl git jq
 
             echo "=== Running Terraform to create VM ==="
-            cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup || exit 1
+            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup || exit 1
             terraform init
             terraform apply -auto-approve
 
@@ -90,7 +89,6 @@ stages:
           - agent.name -equals vipin-agent-machine
       steps:
         - checkout: self
-          path: vm-setup-azure-devops-tools
 
         - script: |
             echo "=============================="
@@ -100,7 +98,7 @@ stages:
 
         - script: |
             echo "=== Running Terraform for DevOps Tools installation ==="
-            cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools || exit 1
+            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools || exit 1
 
             terraform init
             terraform validate
@@ -133,10 +131,10 @@ stages:
 
             # Debug workspace
             echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l $(Pipeline.Workspace)
+            ls -l $(Pipeline.Workspace)/s
 
-            # Go to Ansible directory
-            cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-ansible || exit 1
+            # Go to Ansible directory (corrected path)
+            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
