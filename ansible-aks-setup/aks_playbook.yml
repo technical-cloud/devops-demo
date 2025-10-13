@@ -51,6 +51,10 @@ stages:
 
         - script: |
             echo "=== Installing prerequisites ==="
+            # Remove broken HashiCorp repo to avoid 404
+            sudo rm -f /etc/yum.repos.d/hashicorp.repo
+            sudo dnf clean all
+            sudo dnf makecache
             sudo dnf install -y unzip curl git jq
 
             # Debug workspace
