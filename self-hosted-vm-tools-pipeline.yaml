@@ -124,10 +124,11 @@ stages:
             terraform apply -auto-approve tfplan
           displayName: 'Terraform Apply for DevOps Tools (Ubuntu)'
 
+        # ✅ Re-emit VM IP for Stage 3
+        - script: echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$(vm_public_ip)"
+          name: pass_vm_ip
+
 # --------------------------------------------------------------------
-# --------------------------------------------------------------------
-# Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
-## --------------------------------------------------------------------
 # Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
 # --------------------------------------------------------------------
 - stage: Create_AKS
@@ -135,7 +136,7 @@ stages:
   dependsOn: Install_Tools
   condition: succeeded('Install_Tools')
   variables:
-    vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
+    vm_public_ip: $[ stageDependencies.Install_Tools.install_tools.outputs['pass_vm_ip.vm_public_ip'] ]
   jobs:
     - job: deploy_aks
       displayName: 'Deploy AKS via Terraform + Ansible (Ubuntu VM)'
@@ -149,11 +150,11 @@ stages:
         - script: |
             echo "========================================="
             echo " Stage 3: Deploy AKS via Terraform + Ansible"
-            echo " VM Public IP passed from Stage 1: $(vm_public_ip)"
+            echo " VM Public IP passed from Stage 2: $(vm_public_ip)"
             echo "========================================="
 
             if [ -z "$(vm_public_ip)" ]; then
-              echo "❌ ERROR: vm_public_ip is empty! Check Stage 1 output."
+              echo "❌ ERROR: vm_public_ip is empty! Check Stage 2 output."
               exit 1
             fi
 
@@ -185,11 +186,7 @@ stages:
               -out=tfplan
 
             echo "=== Applying Terraform plan ==="
-            terraform apply -auto-approve "tfplan" || {
-              echo "❌ Terraform apply failed. Exiting..."
-              exit 1
-            }
-
+            terraform apply -auto-approve "tfplan"
           displayName: 'Terraform Apply for AKS via Ansible'
           env:
             subscription_id: $(subscription_id)
