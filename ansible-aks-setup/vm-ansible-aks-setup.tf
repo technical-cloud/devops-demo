@@ -22,9 +22,13 @@ resource "null_resource" "ansible_install" {
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "chmod +x /home/docker/install_ansible.sh",
-      "sudo /home/docker/install_ansible.sh"
-    ]
-  }
+  inline = [
+    "echo '=== Loading Azure credentials ==='",
+    "source /home/docker/azure_env.sh",
+    "echo '=== Logging into Azure ==='",
+    "az login --service-principal -u \"$AZ_CLIENT_ID\" -p \"$AZ_CLIENT_SECRET\" --tenant \"$AZ_TENANT_ID\""
+  ]
 }
+
+  }
+

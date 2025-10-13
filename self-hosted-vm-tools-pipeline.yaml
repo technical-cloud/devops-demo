@@ -24,7 +24,6 @@ stages:
         - script: |
             echo "=== Installing Terraform 1.7.5 on RHEL agent ==="
             sudo yum install -y unzip curl jq git || sudo dnf install -y unzip curl jq git
-
             echo "=== Installing Terraform manually (reliable) ==="
             curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
             unzip terraform_1.7.5_linux_amd64.zip
@@ -149,7 +148,7 @@ stages:
           persistCredentials: true
           clean: true
 
-        # Step 1 — Dynamically create azure_env.sh in Terraform folder
+        # Step 1 — Dynamically create azure_env.sh
         - script: |
             echo "Creating azure_env.sh dynamically"
             cd "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
@@ -168,10 +167,13 @@ stages:
             client_secret: $(client_secret)
             tenant_id: $(tenant_id)
 
-        # Step 2 — Debug: verify file exists
+        # Step 2 — Install Ansible
         - script: |
-            ls -la "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
-          displayName: 'Debug — Verify azure_env.sh exists'
+            echo "Installing Ansible on Ubuntu VM"
+            cd "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
+            chmod +x install_ansible.sh
+            ./install_ansible.sh
+          displayName: 'Install Ansible via install_ansible.sh'
 
         # Step 3 — Terraform deploy AKS
         - script: |
