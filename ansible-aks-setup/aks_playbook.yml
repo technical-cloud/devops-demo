@@ -50,7 +50,7 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Installing prerequisites (unzip, curl, git, jq) on RHEL ==="
+            echo "=== Installing prerequisites ==="
             sudo dnf install -y unzip curl git jq
 
             # Debug workspace
@@ -105,7 +105,6 @@ stages:
             echo "=============================="
 
         - script: |
-            # Navigate to Terraform tools folder
             cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
