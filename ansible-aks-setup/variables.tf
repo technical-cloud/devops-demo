@@ -1,22 +1,22 @@
 # --------------------------------------------------------------------
 # variables.tf — Define all variables once
 # --------------------------------------------------------------------
-var "subscription_id" {
+variable "subscription_id" {
 description = "Subscription ID"
 type = string
 }
 
-var "tenant_id" {
+variable "tenant_id" {
 description = "Tenant ID"
 type  = string
 }
 
-var "client_id" {
+variable "client_id" {
 description = "Client ID" 
 type  = string
 }
 
-var "client_secret" {
+variable "client_secret" {
 description = "Client Secret"
 type  = string
 }
@@ -35,4 +35,3 @@ variable "vm_password" {
   description = "Password for Ubuntu VM"
   type        = string
 }
-
