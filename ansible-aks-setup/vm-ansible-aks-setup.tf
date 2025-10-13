@@ -4,6 +4,7 @@ resource "null_resource" "ansible_install" {
     host     = var.vm_public_ip
     user     = var.vm_username
     password = var.vm_password
+    timeout     = "5m"
   }
 
   # Copy necessary scripts to Ubuntu VM
