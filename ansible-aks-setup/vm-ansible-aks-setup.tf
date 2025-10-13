@@ -5,6 +5,7 @@ resource "null_resource" "ansible_install" {
     user     = var.vm_username
     password = var.vm_password
     timeout     = "5m"
+    agent    = false
   }
 
   # Copy necessary scripts to Ubuntu VM
@@ -26,6 +27,7 @@ resource "null_resource" "ansible_install" {
   # Install Ansible & Azure CLI, then run playbook
   provisioner "remote-exec" {
     inline = [
+      "echo 'Waiting 30s for VM to finish booting...'; sleep 30",
       "chmod +x /home/docker/install_ansible.sh",
       "bash /home/docker/install_ansible.sh"
     ]
