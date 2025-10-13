@@ -4,15 +4,13 @@ set -e
 exec > >(tee -i /var/log/cloudinit_stage2.log)
 exec 2>&1
 
-echo "Starting DevOps tools installation..."
+echo "Starting DevOps tools installation on RHEL..."
 
-# Function to wait for apt locks
-wait_for_apt() {
-  echo "Waiting for any other apt/dpkg process to finish..."
-  while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || \
-        sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
-        sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-    echo "Apt lock detected. Sleeping for 5s..."
+# Function to wait for yum/dnf locks
+wait_for_yum() {
+  echo "Waiting for any other yum/dnf process to finish..."
+  while sudo fuser /var/run/yum.pid >/dev/null 2>&1 || sudo fuser /var/run/dnf.pid >/dev/null 2>&1; do
+    echo "Yum/DNF lock detected. Sleeping for 5s..."
     sleep 5
   done
 }
@@ -20,20 +18,20 @@ wait_for_apt() {
 # -------------------------------
 # Update packages & install essentials
 # -------------------------------
-wait_for_apt
+wait_for_yum
 echo "Updating packages..."
-sudo apt-get update -y
+sudo dnf update -y || sudo yum update -y
 
-wait_for_apt
-echo "Installing git, unzip, curl, apt-transport-https, software-properties-common..."
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git unzip curl apt-transport-https software-properties-common
+wait_for_yum
+echo "Installing git, unzip, curl, wget, epel-release..."
+sudo dnf install -y git unzip curl wget epel-release || sudo yum install -y git unzip curl wget epel-release
 
 # -------------------------------
 # Install Docker
 # -------------------------------
-wait_for_apt
+wait_for_yum
 echo "Installing Docker..."
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io
+sudo dnf install -y docker || sudo yum install -y docker
 sudo systemctl enable docker
 sudo systemctl start docker
 sudo usermod -aG docker $USER
@@ -43,7 +41,9 @@ docker --version
 # Install Azure CLI
 # -------------------------------
 echo "Installing Azure CLI..."
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+sudo dnf install -y https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm || sudo yum install -y https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm
+sudo dnf install -y azure-cli || sudo yum install -y azure-cli
 
 # -------------------------------
 # Install kubectl
@@ -80,4 +80,4 @@ kubectl version --client
 helm version
 terraform -v
 
-echo "✅ All DevOps tools installed successfully!"
+echo "✅ All DevOps tools installed successfully on RHEL!"

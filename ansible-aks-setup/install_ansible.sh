@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "=== Installing Ansible and dependencies on Ubuntu ==="
-sudo apt update -y
-sudo apt install -y ansible python3-pip unzip jq git curl
+echo "=== Installing Ansible and dependencies on RHEL ==="
+sudo dnf install -y epel-release || sudo yum install -y epel-release
+sudo dnf install -y ansible python3-pip unzip jq git curl || sudo yum install -y ansible python3-pip unzip jq git curl
 
 echo "=== Installing Azure CLI ==="
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+sudo dnf install -y https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm || sudo yum install -y https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm
+sudo dnf install -y azure-cli || sudo yum install -y azure-cli
 
 echo "=== Loading Azure credentials ==="
 if [ ! -f "/home/docker/azure_env.sh" ]; then

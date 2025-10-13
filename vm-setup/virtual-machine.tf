@@ -41,10 +41,9 @@ resource "azurerm_linux_virtual_machine" "vipin_vm_local" {
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
+    publisher = "RedHat"
+    offer     = "RHEL"
+    sku       = "9-Gen2"  
   }
 
   # Stage 1 cloudinit only prepares VM
