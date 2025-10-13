@@ -124,7 +124,7 @@ stages:
             terraform apply -auto-approve tfplan
           displayName: 'Terraform Apply for DevOps Tools (Ubuntu)'
 
-        # ✅ Re-emit VM IP for Stage 3
+        # Re-emit VM IP for Stage 3
         - script: echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$(vm_public_ip)"
           name: pass_vm_ip
 
@@ -146,35 +146,39 @@ stages:
           - agent.name -equals $(existing_agent)
       steps:
         - checkout: self
+          persistCredentials: true
+          clean: true
 
+        # Step 1 — Dynamically create azure_env.sh in Terraform folder
         - script: |
-            echo "========================================="
-            echo " Stage 3: Deploy AKS via Terraform + Ansible"
-            echo " VM Public IP passed from Stage 2: $(vm_public_ip)"
-            echo "========================================="
+            echo "Creating azure_env.sh dynamically"
+            cd "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
+            cat <<EOF > azure_env.sh
+            #!/bin/bash
+            export AZ_SUBSCRIPTION_ID=$(subscription_id)
+            export AZ_CLIENT_ID=$(client_id)
+            export AZ_CLIENT_SECRET=$(client_secret)
+            export AZ_TENANT_ID=$(tenant_id)
+            EOF
+            chmod +x azure_env.sh
+          displayName: 'Create azure_env.sh dynamically'
+          env:
+            subscription_id: $(subscription_id)
+            client_id: $(client_id)
+            client_secret: $(client_secret)
+            tenant_id: $(tenant_id)
 
-            if [ -z "$(vm_public_ip)" ]; then
-              echo "❌ ERROR: vm_public_ip is empty! Check Stage 2 output."
-              exit 1
-            fi
+        # Step 2 — Debug: verify file exists
+        - script: |
+            ls -la "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
+          displayName: 'Debug — Verify azure_env.sh exists'
 
-            echo "=== Locating ansible-aks-setup folder dynamically ==="
-            ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "ansible-aks-setup" | head -n 1)
-            if [ -z "$ANSIBLE_DIR" ]; then
-              echo "❌ ERROR: ansible-aks-setup folder not found!"
-              exit 1
-            fi
-            echo "✅ Found directory: $ANSIBLE_DIR"
-
-            cd "$ANSIBLE_DIR" || exit 1
-
-            echo "=== Initializing Terraform ==="
+        # Step 3 — Terraform deploy AKS
+        - script: |
+            echo "VM Public IP: $(vm_public_ip)"
+            cd "$(System.DefaultWorkingDirectory)/ansible-aks-setup"
             terraform init -input=false
-
-            echo "=== Validating Terraform configuration ==="
             terraform validate
-
-            echo "=== Running Terraform plan for AKS deployment ==="
             terraform plan \
               -var "vm_public_ip=$(vm_public_ip)" \
               -var "vm_username=docker" \
@@ -184,8 +188,6 @@ stages:
               -var "client_id=$(client_id)" \
               -var "client_secret=$(client_secret)" \
               -out=tfplan
-
-            echo "=== Applying Terraform plan ==="
             terraform apply -auto-approve "tfplan"
           displayName: 'Terraform Apply for AKS via Ansible'
           env:
