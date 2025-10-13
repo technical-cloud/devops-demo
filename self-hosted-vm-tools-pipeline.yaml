@@ -4,10 +4,11 @@ variables:
   org_url: "https://dev.azure.com/vadapavsamosa/user19"
   existing_agent: "vipin-agent-machine"
 
-stages:
+pool:
+  name: 'vadapav'
 
 # --------------------------------------------------------------------
-# Stage 0 — Install Terraform once
+# Stage 0 — Install Terraform once on RHEL agent
 # --------------------------------------------------------------------
 - stage: Setup_Terraform
   displayName: 'Stage 0: Install Terraform'
@@ -50,19 +51,25 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Installing prerequisites (unzip, curl, git, jq) on RHEL ==="
-            sudo dnf install -y unzip curl git jq
+            echo "=== Installing prerequisites (unzip, curl, git, jq) on RHEL agent ==="
+            sudo yum install -y unzip curl git jq || sudo dnf install -y unzip curl git jq
 
             echo "=== Running Terraform to create VM ==="
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup || exit 1
+            VM_SETUP_DIR=$(find $(Pipeline.Workspace)/s -type d -name "vm-setup" | head -n 1)
+            if [ -z "$VM_SETUP_DIR" ]; then
+              echo "❌ ERROR: vm-setup folder not found!"
+              exit 1
+            fi
+
+            cd "$VM_SETUP_DIR" || exit 1
             terraform init
             terraform apply -auto-approve
 
             VM_IP=$(terraform output -json public_ip_addresses | jq -r '.[0]')
-            echo "VM Public IP: $VM_IP"
-  
+            echo "✅ VM Public IP: $VM_IP"
+
             if [ -z "$VM_IP" ]; then
-              echo "ERROR: VM IP is empty. Exiting..."
+              echo "❌ ERROR: VM IP is empty. Exiting..."
               exit 1
             fi
 
@@ -79,7 +86,6 @@ stages:
   condition: succeeded('VM_Creation')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: install_tools
       displayName: 'Install DevOps Tools via Terraform'
@@ -98,11 +104,16 @@ stages:
 
         - script: |
             echo "=== Running Terraform for DevOps Tools installation ==="
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools || exit 1
+            TOOLS_DIR=$(find $(Pipeline.Workspace)/s -type d -name "vm-tools" | head -n 1)
+            if [ -z "$TOOLS_DIR" ]; then
+              echo "❌ ERROR: vm-tools folder not found!"
+              exit 1
+            fi
 
+            cd "$TOOLS_DIR" || exit 1
             terraform init
             terraform validate
-            terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
+            terraform plan -var "vm_ip=$(vm_public_ip)" -out=tfplan
             terraform apply -auto-approve tfplan
           displayName: 'Terraform Apply for DevOps Tools'
 
@@ -115,7 +126,6 @@ stages:
   condition: succeeded('Install_Tools')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: deploy_aks
       displayName: 'Deploy AKS via Ansible'
@@ -129,19 +139,20 @@ stages:
         - script: |
             echo "=== Preparing Azure credentials for Ansible ==="
 
-            # Debug workspace
-            echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l $(Pipeline.Workspace)/s
+            ANSIBLE_DIR=$(find $(Pipeline.Workspace)/s -type d -name "vm-ansible" | head -n 1)
+            if [ -z "$ANSIBLE_DIR" ]; then
+              echo "❌ ERROR: vm-ansible folder not found!"
+              exit 1
+            fi
 
-            # Go to Ansible directory (corrected path)
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible || exit 1
+            cd "$ANSIBLE_DIR" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
-            # Install Ansible if missing
+            # Install Ansible on RHEL agent if missing
             if ! command -v ansible-playbook >/dev/null 2>&1; then
-              sudo dnf install -y epel-release
-              sudo dnf install -y ansible
+              sudo yum install -y epel-release || sudo dnf install -y epel-release
+              sudo yum install -y ansible || sudo dnf install -y ansible
             fi
             ansible --version
 
@@ -155,7 +166,7 @@ stages:
             chmod +x /home/docker/azure_env.sh
             echo "✅ Azure credentials written to /home/docker/azure_env.sh"
 
-            # Run Ansible playbook
+            # Run Ansible playbook for AKS
             echo "=== Running Ansible playbook ==="
             ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
           displayName: 'Run Ansible for AKS'
