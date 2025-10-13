@@ -38,7 +38,6 @@ stages:
 - stage: VM_Creation
   displayName: 'Stage 1: Create Ubuntu VM via Terraform'
   dependsOn: Setup_Terraform
-  condition: succeeded('Setup_Terraform')
   jobs:
     - job: create_vm
       displayName: 'Terraform Apply for VM'
@@ -50,19 +49,19 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Installing prerequisites ==="
-            # Remove broken HashiCorp repo to avoid 404
-            sudo rm -f /etc/yum.repos.d/hashicorp.repo
-            sudo dnf clean all
-            sudo dnf makecache
+            echo "=== Removing broken HashiCorp repo ==="
+            sudo rm -f /etc/yum.repos.d/hashicorp.repo || true
+            sudo dnf clean all || true
+            sudo dnf makecache || true
+
+            echo "=== Installing prerequisites (unzip, curl, git, jq) ==="
             sudo dnf install -y unzip curl git jq
 
             # Debug workspace
             echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l "$(Pipeline.Workspace)"
             ls -l "$(Pipeline.Workspace)/s"
 
-            # Navigate to Terraform folder
+            # Navigate to Terraform folder dynamically
             cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
@@ -73,26 +72,23 @@ stages:
 
             VM_IP=$(terraform output -json public_ip_addresses | jq -r '.[0]')
             echo "VM Public IP: $VM_IP"
-
             if [ -z "$VM_IP" ]; then
               echo "ERROR: VM IP is empty. Exiting..."
               exit 1
             fi
 
             echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
-          name: set_vm_ip
           displayName: 'Terraform Apply for VM'
+          name: set_vm_ip
 
 # --------------------------------------------------------------------
-# Stage 2 — Install DevOps Tools on the new VM
+# Stage 2 — Install DevOps Tools
 # --------------------------------------------------------------------
 - stage: Install_Tools
   displayName: 'Stage 2: Install DevOps Tools on new VM'
   dependsOn: VM_Creation
-  condition: succeeded('VM_Creation')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: install_tools
       displayName: 'Install DevOps Tools via Terraform'
@@ -104,32 +100,26 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=============================="
-            echo "VM IP received from Stage 1: $(vm_public_ip)"
-            echo "=============================="
-
-        - script: |
+            echo "VM IP received: $(vm_public_ip)"
             cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-tools" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
             echo "=== Running Terraform for DevOps Tools installation ==="
-            terraform init
-            terraform validate
-            terraform plan -var "vm_ip=$(vm_public_ip)" -out=tfplan
-            terraform apply -auto-approve tfplan
+            for i in {1..3}; do
+              terraform init && terraform validate && terraform plan -var "vm_ip=$(vm_public_ip)" -out=tfplan && terraform apply -auto-approve tfplan && break || echo "Retrying Terraform ($i/3)..."
+              sleep 5
+            done
           displayName: 'Terraform Apply for DevOps Tools'
 
 # --------------------------------------------------------------------
-# Stage 3 — Deploy AKS Cluster via Ansible
+# Stage 3 — Deploy AKS via Ansible
 # --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Ansible'
   dependsOn: Install_Tools
-  condition: succeeded('Install_Tools')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: deploy_aks
       displayName: 'Deploy AKS via Ansible'
@@ -143,12 +133,11 @@ stages:
         - script: |
             echo "=== Preparing Azure credentials for Ansible ==="
 
-            # Debug workspace
-            echo "Pipeline workspace: $(Pipeline.Workspace)"
+            echo "Pipeline workspace: $(Pipeline.Workspace)/s"
             ls -l "$(Pipeline.Workspace)/s"
 
             # Navigate to Ansible folder
-            cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible" || exit 1
+            cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/ansible-aks-setup" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
@@ -169,9 +158,11 @@ stages:
             chmod +x /home/docker/azure_env.sh
             echo "✅ Azure credentials written to /home/docker/azure_env.sh"
 
-            # Run Ansible playbook
-            echo "=== Running Ansible playbook ==="
-            ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
+            # Run Ansible playbook with retries
+            for i in {1..3}; do
+              ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)" && break || echo "Retrying Ansible ($i/3)..."
+              sleep 5
+            done
           displayName: 'Run Ansible for AKS'
           env:
             AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
