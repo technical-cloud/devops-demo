@@ -7,7 +7,7 @@ variables:
 stages:
 
 # --------------------------------------------------------------------
-# Stage 0 — Install Terraform once
+# Stage 0 — Install Terraform
 # --------------------------------------------------------------------
 - stage: Setup_Terraform
   displayName: 'Stage 0: Install Terraform'
@@ -58,7 +58,7 @@ stages:
             ls -l "$(Pipeline.Workspace)"
             ls -l "$(Pipeline.Workspace)/s"
 
-            # Navigate to Terraform folder (dynamic path)
+            # Navigate to Terraform folder
             cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
