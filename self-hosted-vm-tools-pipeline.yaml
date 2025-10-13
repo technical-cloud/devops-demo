@@ -127,6 +127,8 @@ stages:
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 # Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
+## --------------------------------------------------------------------
+# Stage 3 — Deploy AKS via Terraform + Ansible on Ubuntu VM
 # --------------------------------------------------------------------
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Terraform + Ansible'
@@ -145,49 +147,52 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Locating ansible-aks-setup Terraform folder dynamically ==="
+            echo "========================================="
+            echo " Stage 3: Deploy AKS via Terraform + Ansible"
+            echo " VM Public IP passed from Stage 1: $(vm_public_ip)"
+            echo "========================================="
+
+            if [ -z "$(vm_public_ip)" ]; then
+              echo "❌ ERROR: vm_public_ip is empty! Check Stage 1 output."
+              exit 1
+            fi
+
+            echo "=== Locating ansible-aks-setup folder dynamically ==="
             ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "ansible-aks-setup" | head -n 1)
             if [ -z "$ANSIBLE_DIR" ]; then
-                echo "❌ ERROR: ansible-aks-setup folder not found!"
-                exit 1
+              echo "❌ ERROR: ansible-aks-setup folder not found!"
+              exit 1
             fi
             echo "✅ Found directory: $ANSIBLE_DIR"
 
             cd "$ANSIBLE_DIR" || exit 1
 
-            echo "=== Creating Azure env file for Terraform ==="
-            cat <<EOF > azure_env.sh
-            export AZ_SUBSCRIPTION_ID=${AZ_SUBSCRIPTION_ID}
-            export AZ_CLIENT_ID=${AZ_CLIENT_ID}
-            export AZ_CLIENT_SECRET=${AZ_CLIENT_SECRET}
-            export AZ_TENANT_ID=${AZ_TENANT_ID}
-            EOF
-            chmod +x azure_env.sh
-
             echo "=== Initializing Terraform ==="
-            terraform init
+            terraform init -input=false
 
             echo "=== Validating Terraform configuration ==="
             terraform validate
 
-            echo "=== Terraform plan and apply for AKS deployment via Ansible ==="
+            echo "=== Running Terraform plan for AKS deployment ==="
             terraform plan \
               -var "vm_public_ip=$(vm_public_ip)" \
               -var "vm_username=docker" \
               -var "vm_password=Docker@12345" \
-              -var "subscription_id=$(AZ_SUBSCRIPTION_ID)" \
-              -var "tenant_id=$(AZ_TENANT_ID)" \
-              -var "client_id=$(AZ_CLIENT_ID)" \
-              -var "client_secret=$(AZ_CLIENT_SECRET)" \
+              -var "subscription_id=$(subscription_id)" \
+              -var "tenant_id=$(tenant_id)" \
+              -var "client_id=$(client_id)" \
+              -var "client_secret=$(client_secret)" \
               -out=tfplan
 
-            echo "✅ Terraform Plan complete, applying now..."
-            terraform apply -auto-approve tfplan
+            echo "=== Applying Terraform plan ==="
+            terraform apply -auto-approve "tfplan" || {
+              echo "❌ Terraform apply failed. Exiting..."
+              exit 1
+            }
 
-            echo "✅ AKS deployment via Ansible completed successfully."
           displayName: 'Terraform Apply for AKS via Ansible'
           env:
-            AZ_SUBSCRIPTION_ID: $(subscription_id)
-            AZ_CLIENT_ID: $(client_id)
-            AZ_CLIENT_SECRET: $(client_secret)
-            AZ_TENANT_ID: $(tenant_id)
+            subscription_id: $(subscription_id)
+            client_id: $(client_id)
+            client_secret: $(client_secret)
+            tenant_id: $(tenant_id)
