@@ -49,17 +49,12 @@ stages:
         - checkout: self
 
         - script: |
-            echo "=== Removing broken HashiCorp repo ==="
-            sudo rm -f /etc/yum.repos.d/hashicorp.repo || true
-            sudo dnf clean all || true
-            sudo dnf makecache || true
-
-            echo "=== Installing prerequisites (unzip, curl, git, jq) ==="
+            echo "=== Installing prerequisites ==="
             sudo dnf install -y unzip curl git jq
 
-            # Debug workspace
-            echo "Pipeline workspace: $(Pipeline.Workspace)"
-            ls -l "$(Pipeline.Workspace)/s"
+            # Debug repo structure
+            echo "Pipeline workspace: $(Pipeline.Workspace)/s"
+            ls -R "$(Pipeline.Workspace)/s"
 
             # Navigate to Terraform folder dynamically
             cd "$(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-setup" || exit 1
