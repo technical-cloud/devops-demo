@@ -171,13 +171,19 @@ stages:
 
             echo "=== Running Terraform plan and apply for AKS deployment via Ansible ==="
             terraform plan \
-              -var "vm_public_ip=$(vm_public_ip)" \
-              -var "vm_username=docker" \
-              -var "vm_password=Docker@12345" \
-              -out=tfplan
+            -var "vm_public_ip=$(vm_public_ip)" \
+            -var "vm_username=docker" \
+            -var "vm_password=Docker@12345" \
+            -var "subscription_id=$(subscription_id)" \
+            -var "tenant_id=$(tenant_id)" \
+            -var "client_id=$(client_id)" \
+            -var "client_secret=$(client_secret)" \
+            -out=tfplan
+
             terraform apply -auto-approve tfplan
-          displayName: 'Terraform Apply for AKS via Ansible'
-          env:
+            terraform apply -auto-approve tfplan
+            displayName: 'Terraform Apply for AKS via Ansible'
+            env:
             AZ_SUBSCRIPTION_ID: $(subscription_id)
             AZ_CLIENT_ID: $(client_id)
             AZ_CLIENT_SECRET: $(client_secret)
