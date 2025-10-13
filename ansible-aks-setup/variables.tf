@@ -1,37 +1,46 @@
-variable "subscription_id" {
-  description = "The Subscription ID for the Azure account."
-  type        = string
-}
-
-variable "client_id" {
-  description = "The Client ID (Application ID) for the Azure account."
-  type        = string
-}
-
-variable "tenant_id" {
-  description = "The Tenant ID for the Azure account."
-  type        = string
-}
-
-variable "client_secret" {
-  description = "The Client Secret (Password) for the Azure account."
-  type        = string
-  sensitive   = true
-}
+# --------------------------------------------------------------------
+# variables.tf — Define all variables once
+# --------------------------------------------------------------------
 
 variable "vm_public_ip" {
-  description = "Public IP of the VM to connect via SSH"
+  description = "Public IP of the Ubuntu VM"
   type        = string
 }
 
 variable "vm_username" {
-  description = "Username to SSH into VM"
+  description = "Username for Ubuntu VM"
   type        = string
-  default     = "docker"
 }
 
 variable "vm_password" {
-  description = "Password to SSH into VM"
+  description = "Password for Ubuntu VM"
   type        = string
-  default     = "Docker@12345"
+}
+
+variable "aks_resource_group" {
+  description = "Azure Resource Group for AKS"
+  type        = string
+}
+
+variable "aks_cluster_name" {
+  description = "AKS Cluster Name"
+  type        = string
+}
+
+variable "aks_location" {
+  description = "Azure Region for AKS"
+  type        = string
+  default     = "eastus2"
+}
+
+variable "aks_node_count" {
+  description = "Number of nodes in AKS cluster"
+  type        = number
+  default     = 2
+}
+
+variable "aks_vm_size" {
+  description = "VM size for AKS nodes"
+  type        = string
+  default     = "Standard_B2s"
 }
