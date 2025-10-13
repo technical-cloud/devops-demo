@@ -127,8 +127,9 @@ stages:
           displayName: 'Terraform Apply for DevOps Tools (Ubuntu)'
 
 # --------------------------------------------------------------------
-# Stage 3 — Deploy AKS Cluster via Ansible (Runs from RHEL Agent)
+# Stage 3 — Create AKS Cluster via Ansible
 # --------------------------------------------------------------------
+
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Ansible'
   dependsOn: Install_Tools
@@ -147,14 +148,15 @@ stages:
 
         - script: |
             echo "=== Preparing Azure credentials for Ansible ==="
-            ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-ansible" | head -n 1)
+            # Updated folder name
+            ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "ansible-aks-setup" | head -n 1)
             if [ -z "$ANSIBLE_DIR" ]; then
-                echo "❌ ERROR: vm-ansible folder not found!"
+                echo "❌ ERROR: ansible-aks-setup folder not found!"
                 exit 1
             fi
 
             cd "$ANSIBLE_DIR" || exit 1
-            echo "Current directory: $(pwd)"
+            echo "✅ Current directory: $(pwd)"
             ls -l
 
             # Ensure Ansible is available on RHEL agent
@@ -175,9 +177,4 @@ stages:
 
             echo "=== Running Ansible playbook for AKS cluster deployment ==="
             ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
-          displayName: 'Run Ansible for AKS Cluster Setup'
-          env:
-            AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
-            AZ_CLIENT_ID: $(AZ_CLIENT_ID)
-            AZ_CLIENT_SECRET: $(AZ_CLIENT_SECRET)
-            AZ_TENANT_ID: $(AZ_TENANT_ID)
+          displayName: 'Run Ansible for AKS
