@@ -54,24 +54,24 @@ stages:
           - agent.name -equals $(existing_agent)
       steps:
         - checkout: self
-          path: vm-setup-azure-devops-tools
 
         - script: |
             echo "=== Installing prerequisites on RHEL agent ==="
             sudo yum install -y unzip curl git jq || sudo dnf install -y unzip curl git jq
 
-            echo "=== Running Terraform to create Ubuntu VM ==="
+            echo "=== Locating vm-setup folder dynamically ==="
             TERRAFORM_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-setup" | head -n 1)
             if [ -z "$TERRAFORM_DIR" ]; then
               echo "❌ ERROR: vm-setup folder not found!"
               exit 1
             fi
+            echo "✅ Found Terraform directory: $TERRAFORM_DIR"
 
             cd "$TERRAFORM_DIR" || exit 1
             terraform init
             terraform apply -auto-approve
 
-            # Capture VM public IP
+            echo "=== Capturing VM public IP ==="
             VM_IP=$(terraform output -json public_ip_addresses | jq -r '.[0]')
             echo "✅ VM Public IP: $VM_IP"
 
@@ -95,14 +95,13 @@ stages:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
   jobs:
     - job: install_tools
-      displayName: 'Install DevOps Tools via Terraform'
+      displayName: 'Install DevOps Tools via Terraform (on Ubuntu)'
       pool:
         name: 'vadapav'
         demands:
           - agent.name -equals $(existing_agent)
       steps:
         - checkout: self
-          path: vm-setup-azure-devops-tools
 
         - script: |
             echo "=============================="
@@ -111,12 +110,13 @@ stages:
           displayName: 'Debug — Verify VM IP'
 
         - script: |
-            echo "=== Running Terraform for DevOps Tools installation (on Ubuntu) ==="
+            echo "=== Locating vm-tools folder dynamically ==="
             TOOLS_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "vm-tools" | head -n 1)
             if [ -z "$TOOLS_DIR" ]; then
               echo "❌ ERROR: vm-tools folder not found!"
               exit 1
             fi
+            echo "✅ Found Tools directory: $TOOLS_DIR"
 
             cd "$TOOLS_DIR" || exit 1
 
@@ -129,7 +129,6 @@ stages:
 # --------------------------------------------------------------------
 # Stage 3 — Create AKS Cluster via Ansible
 # --------------------------------------------------------------------
-
 - stage: Create_AKS
   displayName: 'Stage 3: Deploy AKS via Ansible'
   dependsOn: Install_Tools
@@ -148,15 +147,17 @@ stages:
 
         - script: |
             echo "=== Preparing Azure credentials for Ansible ==="
-            # Updated folder name
+
+            # ✅ Updated folder name and dynamic find logic
             ANSIBLE_DIR=$(find "$(System.DefaultWorkingDirectory)" -type d -name "ansible-aks-setup" | head -n 1)
             if [ -z "$ANSIBLE_DIR" ]; then
                 echo "❌ ERROR: ansible-aks-setup folder not found!"
                 exit 1
             fi
+            echo "✅ Found Ansible directory: $ANSIBLE_DIR"
 
             cd "$ANSIBLE_DIR" || exit 1
-            echo "✅ Current directory: $(pwd)"
+            echo "Current directory: $(pwd)"
             ls -l
 
             # Ensure Ansible is available on RHEL agent
@@ -177,4 +178,9 @@ stages:
 
             echo "=== Running Ansible playbook for AKS cluster deployment ==="
             ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
-          displayName: 'Run Ansible for AKS
+          displayName: 'Run Ansible for AKS Deployment'
+          env:
+            AZ_SUBSCRIPTION_ID: $(AZ_SUBSCRIPTION_ID)
+            AZ_CLIENT_ID: $(AZ_CLIENT_ID)
+            AZ_CLIENT_SECRET: $(AZ_CLIENT_SECRET)
+            AZ_TENANT_ID: $(AZ_TENANT_ID)
