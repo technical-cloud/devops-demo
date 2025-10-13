@@ -8,9 +8,8 @@ pool:
   name: 'vadapav'
 
 stages:
-
 # --------------------------------------------------------------------
-# Stage 0 — Install Terraform once on the agent
+# Stage 0 — Install Terraform once on RHEL agent
 # --------------------------------------------------------------------
 - stage: Setup_Terraform
   displayName: 'Stage 0: Install Terraform'
@@ -23,10 +22,7 @@ stages:
           - agent.name -equals $(existing_agent)
       steps:
         - script: |
-            echo "=== Installing prerequisites on RHEL agent ==="
-            sudo yum install -y unzip curl git jq
-
-            echo "=== Installing Terraform 1.7.5 from ZIP ==="
+            echo "=== Installing Terraform 1.7.5 ==="
             curl -fL -o terraform_1.7.5_linux_amd64.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
             unzip terraform_1.7.5_linux_amd64.zip
             sudo mv terraform /usr/local/bin/
@@ -57,9 +53,17 @@ stages:
           path: vm-setup-azure-devops-tools
 
         - script: |
-            echo "=== Running Terraform to create VM ==="
-            cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-setup || exit 1
+            echo "=== Installing prerequisites on RHEL agent ==="
+            sudo yum install -y unzip curl git jq
 
+            echo "=== Running Terraform to create VM ==="
+            TERRAFORM_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-setup" | head -n 1)
+            if [ -z "$TERRAFORM_DIR" ]; then
+              echo "❌ ERROR: vm-setup folder not found!"
+              exit 1
+            fi
+
+            cd "$TERRAFORM_DIR" || exit 1
             terraform init
             terraform apply -auto-approve
 
@@ -72,7 +76,6 @@ stages:
               exit 1
             fi
 
-            # Export VM IP for next stage
             echo "##vso[task.setvariable variable=vm_public_ip;isOutput=true]$VM_IP"
           name: set_vm_ip
           displayName: 'Terraform Apply for VM'
@@ -86,7 +89,6 @@ stages:
   condition: succeeded('VM_Creation')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: install_tools
       displayName: 'Install DevOps Tools via Terraform'
@@ -100,19 +102,23 @@ stages:
 
         - script: |
             echo "=============================="
-            echo "VM IP received from Stage 1: '$(vm_public_ip)'"
+            echo "VM IP received from Stage 1: $(vm_public_ip)"
             echo "=============================="
+          displayName: 'Debug — Verify VM IP'
 
         - script: |
             echo "=== Running Terraform for DevOps Tools installation ==="
-            cd $(Pipeline.Workspace)/vm-setup-azure-devops-tools/vm-tools || exit 1
+            TOOLS_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-tools" | head -n 1)
+            if [ -z "$TOOLS_DIR" ]; then
+              echo "❌ ERROR: vm-tools folder not found!"
+              exit 1
+            fi
 
-            # Generate .tfvars dynamically
-            echo "vm_public_ip = \"$(vm_public_ip)\"" > terraform.tfvars
+            cd "$TOOLS_DIR" || exit 1
 
             terraform init
             terraform validate
-            terraform plan -var-file=terraform.tfvars -out=tfplan -input=false
+            terraform plan -var "vm_public_ip=$(vm_public_ip)" -out=tfplan
             terraform apply -auto-approve tfplan
           displayName: 'Terraform Apply for DevOps Tools'
 
@@ -125,7 +131,6 @@ stages:
   condition: succeeded('Install_Tools')
   variables:
     vm_public_ip: $[ stageDependencies.VM_Creation.create_vm.outputs['set_vm_ip.vm_public_ip'] ]
-
   jobs:
     - job: deploy_aks
       displayName: 'Deploy AKS via Ansible'
@@ -135,24 +140,24 @@ stages:
           - agent.name -equals $(existing_agent)
       steps:
         - checkout: self
-          path: vm-setup-azure-devops-tools
 
         - script: |
             echo "=== Preparing Azure credentials for Ansible on VM ==="
 
-            # Debug workspace
-            echo "Pipeline workspace: $(Pipeline.Workspace)/s"
-            ls -l $(Pipeline.Workspace)/s
+            ANSIBLE_DIR=$(find "$(Pipeline.Workspace)/s" -type d -name "vm-ansible" | head -n 1)
+            if [ -z "$ANSIBLE_DIR" ]; then
+                echo "❌ ERROR: vm-ansible folder not found!"
+                exit 1
+            fi
 
-            # Go to Ansible directory
-            cd $(Pipeline.Workspace)/s/vm-setup-azure-devops-tools/vm-ansible || exit 1
+            cd "$ANSIBLE_DIR" || exit 1
             echo "Current directory: $(pwd)"
             ls -l
 
-            # Install Ansible if missing (RHEL agent)
+            # Install Ansible if missing
             if ! command -v ansible-playbook >/dev/null 2>&1; then
-              sudo yum install -y epel-release
-              sudo yum install -y ansible python3-pip
+                sudo yum install -y epel-release
+                sudo yum install -y ansible python3-pip
             fi
             ansible --version
 
@@ -164,13 +169,9 @@ stages:
             export AZ_TENANT_ID=${AZ_TENANT_ID}
             EOF
             chmod +x /home/docker/azure_env.sh
-            echo "✅ Azure credentials written to /home/docker/azure_env.sh"
 
-            # Debug VM IP
-            echo "VM IP for AKS playbook: '$(vm_public_ip)'"
-
-            # Run Ansible playbook with Azure login
-            source /home/docker/azure_env.sh
+            # Run Ansible playbook for AKS
+            echo "=== Running Ansible playbook for AKS ==="
             ansible-playbook -i inventory.ini playbook.yml --extra-vars "vm_ip=$(vm_public_ip)"
           displayName: 'Run Ansible for AKS'
           env:
