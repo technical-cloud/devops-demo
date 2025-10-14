@@ -3,7 +3,7 @@ resource "azurerm_network_security_group" "vipin_nsg_group_local" {
   resource_group_name = azurerm_resource_group.vipin_rg_local.name
   location            = azurerm_resource_group.vipin_rg_local.location
 
-  # Default SSH inbound rule to allow provisioning
+  # --- Inbound SSH Rule ---
   security_rule {
     name                       = "Allow-SSH-Inbound"
     priority                   = 100
@@ -14,9 +14,10 @@ resource "azurerm_network_security_group" "vipin_nsg_group_local" {
     destination_port_range     = "22"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
+    description                = "Allow SSH for provisioning"
   }
 
-  # Dynamic inbound rules from var.nsgrules
+  # --- Dynamic inbound rules (custom app ports, etc.) ---
   dynamic "security_rule" {
     for_each = var.nsgrules
     content {
@@ -29,10 +30,11 @@ resource "azurerm_network_security_group" "vipin_nsg_group_local" {
       destination_port_range     = security_rule.value.dport
       source_address_prefix      = "*"
       destination_address_prefix = "*"
+      description                = "Dynamic inbound rule"
     }
   }
 
-  # Dynamic outbound rules from var.nsgrules
+  # --- Dynamic outbound rules ---
   dynamic "security_rule" {
     for_each = var.nsgrules
     content {
@@ -45,13 +47,14 @@ resource "azurerm_network_security_group" "vipin_nsg_group_local" {
       destination_port_range     = security_rule.value.dport
       source_address_prefix      = "*"
       destination_address_prefix = "*"
+      description                = "Dynamic outbound rule"
     }
   }
 
-  # Allow all outbound by default
+  # --- Default outbound internet access ---
   security_rule {
     name                       = "Allow-All-Outbound"
-    priority                   = 100
+    priority                   = 200
     direction                  = "Outbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -59,9 +62,11 @@ resource "azurerm_network_security_group" "vipin_nsg_group_local" {
     destination_port_range     = "*"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
+    description                = "Allow all outbound traffic"
   }
 }
 
+# Attach NSG to subnet
 resource "azurerm_subnet_network_security_group_association" "vipin_subnet_nsg_assoc_local" {
   count                     = length(var.subnetname)
   subnet_id                 = azurerm_subnet.vipin_subnet_local[count.index].id
