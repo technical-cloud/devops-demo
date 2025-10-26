@@ -3,7 +3,7 @@ trigger: none
 name: "Main-Orchestrator"
 
 variables:
-- template: vars/global-vars.yml
+- template: azure-pipelines/vars/global-vars.yml
 
 parameters:
   - name: runInstallTools
@@ -36,7 +36,7 @@ stages:
   dependsOn: Install_Tools
   condition: eq('${{ parameters.runCreateVM }}', true)
   variables:
-    - template: vars/ansible-vars.yml
+    - template: azure-pipelines/vars/ansible-vars.yml
   jobs:
     - job: RunAnsible
       steps:
@@ -50,7 +50,7 @@ stages:
   dependsOn: Create_VM
   condition: eq('${{ parameters.runCreateAKS }}', true)
   variables:
-    - template: vars/terraform-vars.yml
+    - template: azure-pipelines/vars/terraform-vars.yml
   jobs:
     - job: RunTerraform
       steps:
