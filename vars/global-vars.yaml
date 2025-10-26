@@ -1,0 +1,9 @@
+variables:
+  location: "eastus"
+  resourceGroup: "demo-rg"
+
+  # Azure Service Principal creds (use Azure DevOps secrets)
+  AZURE_CLIENT_ID: "$(azureClientId)"
+  AZURE_TENANT_ID: "$(azureTenantId)"
+  AZURE_SUBSCRIPTION_ID: "$(azureSubscriptionId)"
+  AZURE_CLIENT_SECRET: "$(azureClientSecret)"

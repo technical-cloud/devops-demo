@@ -1,0 +1,6 @@
+# azure-pipelines/install-tools.yaml
+steps:
+  - script: bash scripts/install-tools.sh
+    displayName: "Install Terraform, Azure CLI, Helm, Docker, Ansible"
+    workingDirectory: $(Build.SourcesDirectory)
+    

@@ -1,0 +1,9 @@
+variables:
+  terraform.aksName: "demo-aks"
+  terraform.aksNodeCount: "2"
+  terraform.aksNodeVMSize: "Standard_DS2_v2"
+  terraform.tfBackendRG: "tfstate-rg"
+  terraform.tfBackendStorage: "tfstateaccount"
+  terraform.tfBackendContainer: "tfstate"
+  terraform.tfBackendKey: "aks.terraform.tfstate"
+  

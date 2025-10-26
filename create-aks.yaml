@@ -1,0 +1,8 @@
+# azure-pipelines/create-aks.yaml
+steps:
+  - script: bash scripts/az-login.sh
+    displayName: "Login to Azure"
+
+  - script: bash scripts/create-aks.sh
+    displayName: "Deploy AKS using Terraform"
+    workingDirectory: $(Build.SourcesDirectory)
