@@ -1,8 +1,18 @@
-# azure-pipelines/create-aks.yaml
-steps:
-  - script: bash scripts/az-login.sh
-    displayName: "Login to Azure"
-
-  - script: bash scripts/create-aks.sh
+jobs:
+  - job: CreateAKS
     displayName: "Deploy AKS using Terraform"
-    workingDirectory: $(Build.SourcesDirectory)
+    pool:
+      name: "vadapav"
+      demands:
+        - Agent.Name -equals vipin-demo-agent-machine
+    steps:
+      - script: bash scripts/az-login.sh
+        displayName: "Login to Azure"
+        env:
+          azure_client_id: $(azure_client_id)
+          azure_client_secret: $(azure_client_secret)
+          azure_tenant_id: $(azure_tenant_id)
+          azure_subscription_id: $(azure_subscription_id)
+
+      - script: bash scripts/create-aks.sh
+        displayName: "Deploy AKS with Terraform"

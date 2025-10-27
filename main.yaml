@@ -1,11 +1,7 @@
-# azure-pipelines/main.yaml
-trigger: none
-name: "Main-Orchestrator"
+trigger:
+  none
 
-# Load global variables
-variables:
-- template: vars/global-vars.yaml
-
+# Parameters to control which stages run
 parameters:
   - name: runInstallTools
     type: boolean
@@ -17,42 +13,16 @@ parameters:
     type: boolean
     default: true
 
+# Load global variables for Azure
+variables:
+  - template: vars/global-vars.yaml
+
 stages:
-# =============================================
-# 1️⃣ INSTALL TOOLS
-# =============================================
-- stage: Install_Tools
-  displayName: "Install Tools"
-  condition: eq('${{ parameters.runInstallTools }}', true)
-  jobs:
-    - job: RunInstallTools
-      steps:
-        - template: install-tools.yaml
+- ${{ if eq(parameters.runInstallTools, true) }}:
+  - template: install-tools.yaml
 
-# =============================================
-# 2️⃣ CREATE VM (ANSIBLE)
-# =============================================
-- stage: Create_VM
-  displayName: "Create VM via Ansible"
-  dependsOn: Install_Tools
-  condition: eq('${{ parameters.runCreateVM }}', true)
-  variables:
-    - template: vars/ansible-vars.yaml
-  jobs:
-    - job: RunAnsible
-      steps:
-        - template: create-vm.yaml
+- ${{ if eq(parameters.runCreateVM, true) }}:
+  - template: create-vm.yaml
 
-# =============================================
-# 3️⃣ CREATE AKS (TERRAFORM)
-# =============================================
-- stage: Create_AKS
-  displayName: "Create AKS via Terraform"
-  dependsOn: Create_VM
-  condition: eq('${{ parameters.runCreateAKS }}', true)
-  variables:
-    - template: vars/terraform-vars.yaml
-  jobs:
-    - job: RunTerraform
-      steps:
-        - template: create-aks.yaml
+- ${{ if eq(parameters.runCreateAKS, true) }}:
+  - template: create-aks.yaml

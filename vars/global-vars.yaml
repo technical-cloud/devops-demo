@@ -1,9 +1,7 @@
 variables:
-  location: "eastus"
-  resourceGroup: "demo-rg"
-
-  # Azure Service Principal creds (use Azure DevOps secrets)
-  AZURE_CLIENT_ID: "$(azureClientId)"
-  AZURE_TENANT_ID: "$(azureTenantId)"
-  AZURE_SUBSCRIPTION_ID: "$(azureSubscriptionId)"
-  AZURE_CLIENT_SECRET: "$(azureClientSecret)"
+  azure_subscription_id: "3e2430ff-cf25-44b4-a264-a1fe5d99c39e"
+  azure_tenant_id:       "702c8df7-5670-48f3-babc-3053e78a82f9"
+  azure_client_id:       "2694799d-8ec2-46e4-ae11-a59937e4dd5f"
+  azure_client_secret:   "Nnu8Q~mJgFQVm1b2gxZeha0_XCWH3LjcsILXga-."
+  region:                "eastus2"
+  rgname:                "vipin-demo-resource-group"

@@ -1,6 +1,10 @@
-# azure-pipelines/install-tools.yaml
-steps:
-  - script: bash scripts/install-tools.sh
-    displayName: "Install Terraform, Azure CLI, Helm, Docker, Ansible"
-    workingDirectory: $(Build.SourcesDirectory)
-    
+jobs:
+  - job: InstallTools
+    displayName: "Install Required Tools"
+    pool:
+      name: "vadapav"
+      demands:
+        - Agent.Name -equals vipin-demo-agent-machine
+    steps:
+      - script: bash scripts/install-tools.sh
+        displayName: "Install Terraform, Azure CLI, Helm, Docker, Ansible, Kubectl"

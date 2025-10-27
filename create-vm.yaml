@@ -1,8 +1,19 @@
-# azure-pipelines/create-vm.yaml
-steps:
-  - script: bash scripts/az-login.sh
-    displayName: "Login to Azure"
+jobs:
+  - job: CreateVM
+    displayName: "Provision VM using Ansible"
+    pool:
+      name: "vadapav"
+      demands:
+        - Agent.Name -equals vipin-demo-agent-machine
+        
+    steps:
+      - script: bash scripts/az-login.sh
+        displayName: "Login to Azure"
+        env:
+          azure_client_id: $(azure_client_id)
+          azure_client_secret: $(azure_client_secret)
+          azure_tenant_id: $(azure_tenant_id)
+          azure_subscription_id: $(azure_subscription_id)
 
-  - script: bash scripts/create-vm.sh
-    displayName: "Create VM using Ansible"
-    workingDirectory: $(Build.SourcesDirectory)
+      - script: bash scripts/create-vm.sh
+        displayName: "Create VM using Ansible"

@@ -1,0 +1,29 @@
+---
+- name: Create Azure VM without external collections
+  hosts: localhost
+  connection: local
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: Create Resource Group
+      command: >
+        az group create
+        --name {{ rgname }}
+        --location {{ region }}
+      register: rg_output
+    - debug:
+        var: rg_output.stdout
+
+    - name: Create VM
+      command: >
+        az vm create
+        --resource-group {{ rgname }}
+        --name {{ vmName }}
+        --image {{ vmImage }}
+        --admin-username {{ adminUser }}
+        --size {{ vmSize }}
+        --generate-ssh-keys
+      register: vm_output
+    - debug:
+        var: vm_output.stdout
