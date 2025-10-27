@@ -13,16 +13,26 @@ parameters:
     type: boolean
     default: true
 
-# Load global variables for Azure
+# Load both variable templates (global + ansible)
 variables:
   - template: vars/global-vars.yaml
+  - template: vars/ansible-vars.yaml
 
 stages:
+# ------------------------
+# Stage 1: Install Tools
+# ------------------------
 - ${{ if eq(parameters.runInstallTools, true) }}:
   - template: install-tools.yaml
 
+# ------------------------
+# Stage 2: Create VM
+# ------------------------
 - ${{ if eq(parameters.runCreateVM, true) }}:
   - template: create-vm.yaml
 
+# ------------------------
+# Stage 3: Create AKS
+# ------------------------
 - ${{ if eq(parameters.runCreateAKS, true) }}:
   - template: create-aks.yaml
