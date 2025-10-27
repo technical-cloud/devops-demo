@@ -1,12 +1,24 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "🔧 Installing base tools..."
 
-# 🧩 Handle apt lock safely (wait if another process is running)
+# 🧩 Handle apt lock safely with timeout & fallback
+max_retries=30
+retry_count=0
+
 echo "⏳ Checking for existing apt lock..."
 while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-  echo "⚠️  Another apt process is running. Waiting 10s..."
+  if [ $retry_count -ge $max_retries ]; then
+    echo "❌ APT lock held too long. Forcing cleanup..."
+    sudo killall apt apt-get || true
+    sudo rm -f /var/lib/dpkg/lock-frontend
+    sudo rm -f /var/lib/apt/lists/lock
+    sudo dpkg --configure -a || true
+    break
+  fi
+  echo "⚠️  Another apt process is running. Waiting 10s... ($retry_count/$max_retries)"
+  retry_count=$((retry_count + 1))
   sleep 10
 done
 
@@ -16,6 +28,7 @@ sudo apt-get install -y jq unzip curl software-properties-common apt-transport-h
 
 echo "✅ Installing Python & Ansible"
 sudo apt-get install -y python3-pip
+pip install --quiet --upgrade pip
 pip install --quiet ansible
 
 echo "✅ Installing Azure CLI"
@@ -23,9 +36,10 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 echo "✅ Installing Terraform"
 T_VERSION="1.9.8"
-wget -q https://releases.hashicorp.com/terraform/${T_VERSION}/terraform_${T_VERSION}_linux_amd64.zip
-unzip -o terraform_${T_VERSION}_linux_amd64.zip
+wget -q "https://releases.hashicorp.com/terraform/${T_VERSION}/terraform_${T_VERSION}_linux_amd64.zip"
+unzip -qo "terraform_${T_VERSION}_linux_amd64.zip"
 sudo mv terraform /usr/local/bin/
+rm -f "terraform_${T_VERSION}_linux_amd64.zip"
 terraform version
 
 echo "✅ Installing Helm"
@@ -34,7 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 |
 echo "✅ Installing Docker"
 sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-sudo usermod -aG docker $(whoami)
+sudo usermod -aG docker "$(whoami)"
 docker --version
 
 echo "✅ Installing kubectl"
