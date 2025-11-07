@@ -51,11 +51,21 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 echo "✅ Installing Terraform"
 T_VERSION="1.9.8"
 
-# ✅ Remove broken or old Terraform (file OR directory)
-if [ -e "/usr/local/bin/terraform" ]; then
-    echo "⚠️ Removing old Terraform binary/directory..."
-    sudo rm -rf /usr/local/bin/terraform
-fi
+# ✅ Remove ALL possible existing Terraform binaries or directories
+echo "⚠️ Cleaning previous Terraform installations..."
+for path in \
+    /usr/local/bin/terraform \
+    /usr/bin/terraform \
+    /bin/terraform \
+    /usr/local/sbin/terraform \
+    "$HOME/.local/bin/terraform" \
+    "$HOME/pyenv/bin/terraform"; do
+
+    if [ -e "$path" ]; then
+        echo "   ➤ Removing: $path"
+        sudo rm -rf "$path" || rm -rf "$path" || true
+    fi
+done
 
 # ✅ Download fresh Terraform
 wget -q "https://releases.hashicorp.com/terraform/${T_VERSION}/terraform_${T_VERSION}_linux_amd64.zip"
