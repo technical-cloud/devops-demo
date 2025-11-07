@@ -1,37 +1,38 @@
-stage: CreateVM
-displayName: "Create VM Stage"
+stages:
+- stage: CreateVM
+  displayName: "Create VM Stage"
 
-jobs:
-  - job: CreateVMOnExistingAgent
-    displayName: "Create VM on Existing Agent"
-    pool:
-      name: "vadapav"
-      demands:
-        - Agent.Name -equals vipin-demo-agent-machine
+  jobs:
+    - job: CreateVMOnExistingAgent
+      displayName: "Create VM on Existing Agent"
+      pool:
+        name: "vadapav"
+        demands:
+          - Agent.Name -equals vipin-demo-agent-machine
 
-    steps:
+      steps:
 
-      - script: bash scripts/az-login.sh
-        displayName: "Login to Azure"
-        workingDirectory: $(Build.SourcesDirectory)
-        env:
-          azure_subscription_id: $(azure_subscription_id)
-          azure_tenant_id: $(azure_tenant_id)
-          azure_client_id: $(azure_client_id)
-          azure_client_secret: $(azure_client_secret)
+        - script: bash scripts/az-login.sh
+          displayName: "Login to Azure"
+          workingDirectory: $(Build.SourcesDirectory)
+          env:
+            azure_subscription_id: $(azure_subscription_id)
+            azure_tenant_id: $(azure_tenant_id)
+            azure_client_id: $(azure_client_id)
+            azure_client_secret: $(azure_client_secret)
 
-      - script: bash scripts/create-vm.sh
-        displayName: "Create VM using Ansible"
-        workingDirectory: $(Build.SourcesDirectory)
-        env:
-          resourceGroup: $(rgname)
-          location: $(region)
-          ansible_vmName: $(vmName)
-          ansible_vmSize: $(vmSize)
-          ansible_vmImage: $(vmImage)
-          ansible_adminUser: $(adminUser)
-          ansible_publicIP: $(ansible_publicIP)
-          ansible_playbookPath: $(ansible_playbookPath)
-          virtualNetwork: $(virtualNetwork)
-          subnetName: $(subnetName)
-          vnetaddr: $(vnetaddr)
+        - script: bash scripts/create-vm.sh
+          displayName: "Create VM using Ansible"
+          workingDirectory: $(Build.SourcesDirectory)
+          env:
+            resourceGroup: $(rgname)
+            location: $(region)
+            ansible_vmName: $(vmName)
+            ansible_vmSize: $(vmSize)
+            ansible_vmImage: $(vmImage)
+            ansible_adminUser: $(adminUser)
+            ansible_publicIP: $(ansible_publicIP)
+            ansible_playbookPath: $(ansible_playbookPath)
+            virtualNetwork: $(virtualNetwork)
+            subnetName: $(subnetName)
+            vnetaddr: $(vnetaddr)
