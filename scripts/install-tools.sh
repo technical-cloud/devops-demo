@@ -24,12 +24,23 @@ done
 
 # 🧰 Update and install base dependencies
 sudo apt-get update -y
-sudo apt-get install -y jq unzip curl software-properties-common apt-transport-https ca-certificates lsb-release gnupg
+sudo apt-get install -y jq unzip curl software-properties-common apt-transport-https ca-certificates lsb-release gnupg python3-venv python3-full
 
-echo "✅ Installing Python & Ansible"
-sudo apt-get install -y python3-pip
-pip install --quiet --upgrade pip
-pip install --quiet ansible
+echo "✅ Installing Python & Ansible (inside venv to avoid PEP 668)..."
+
+# ✅ Create virtual env for Python tools
+mkdir -p $HOME/pyenv
+python3 -m venv $HOME/pyenv
+
+# ✅ Activate venv
+source $HOME/pyenv/bin/activate
+
+# ✅ Install pip safely inside venv
+pip install --upgrade pip
+pip install ansible
+
+# ✅ Confirm Ansible version
+ansible --version || true
 
 echo "✅ Installing Azure CLI"
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
