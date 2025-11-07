@@ -117,36 +117,24 @@ log "⛵ Installing Helm..."
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 ################################################################################
-# DOCKER (Ubuntu 24.04-Compatible)
+# ✅ DOCKER (Ubuntu 24.04 official packages)
 ################################################################################
-log "🐳 Installing Docker (Ubuntu 24.04 — Noble)…"
-
-# Remove conflicting packages
-sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-
-# Install Docker GPG key
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Add Docker repository (correct for Ubuntu 24.04)
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu noble stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+log "🐳 Installing Docker (Ubuntu 24.04 official packages)…"
 
 sudo apt-get update -y
 
-# Install Docker CE
-sudo apt-get install -y \
-    docker-ce \
-    docker-ce-cli \
-    containerd.io \
-    docker-buildx-plugin \
-    docker-compose-plugin
+# Remove conflicting packages
+sudo apt-get remove -y docker docker-engine docker.io containerd runc docker-ce docker-ce-cli || true
 
+# Install Docker FROM UBUNTU REPO (NOT Docker CE repo)
+sudo apt-get install -y docker.io containerd
+
+# Enable Docker service
+sudo systemctl enable --now docker
+
+# Add agent user to docker group
 sudo usermod -aG docker "$(whoami)"
+
 docker --version || warn "Docker installed but version check failed."
 
 ################################################################################
