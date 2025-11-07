@@ -7,7 +7,6 @@ set -euo pipefail
 GREEN="\e[32m"
 YELLOW="\e[33m"
 RED="\e[31m"
-BLUE="\e[34m"
 NC="\e[0m" # No Color
 
 log()  { echo -e "${GREEN}[INFO]${NC} $1"; }
@@ -19,7 +18,7 @@ log "🔧 Starting Installation of Required Tools..."
 ################################################################################
 # APT LOCK HANDLING
 ################################################################################
-log "⏳ Checking for existing apt lock (retrying if needed)..."
+log "⏳ Checking for existing apt lock..."
 max_retries=30
 retry_count=0
 
@@ -47,9 +46,9 @@ sudo apt-get install -y jq unzip curl software-properties-common apt-transport-h
     ca-certificates lsb-release gnupg python3-venv python3-full
 
 ################################################################################
-# PYTHON + ANSIBLE IN VENV (PEP 668 SAFE)
+# PYTHON + ANSIBLE (PEP 668 SAFE)
 ################################################################################
-log "🐍 Setting up Python virtual environment (PEP 668 safe)..."
+log "🐍 Setting up Python + Ansible in virtual environment…"
 
 mkdir -p "$HOME/pyenv"
 if [ ! -d "$HOME/pyenv/bin" ]; then
@@ -72,21 +71,20 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 # TERRAFORM CLEANUP + INSTALL
 ################################################################################
 log "📦 Installing Terraform…"
-
 T_VERSION="1.9.8"
 
-# ✅ Remove terraform folder in workspace (most common cause)
+# ✅ Remove terraform folder in workspace (common conflict)
 if [ -d "terraform" ]; then
-    warn "Workspace contains a Terraform directory — removing to avoid conflicts..."
+    warn "Removing terraform directory from workspace..."
     rm -rf terraform || true
 fi
 
-# ✅ Remove immutable flags on system terraform
+# ✅ Remove immutable flags
 sudo chattr -i /usr/local/bin/terraform 2>/dev/null || true
 sudo chattr -a /usr/local/bin/terraform 2>/dev/null || true
 
-# ✅ Remove all system Terraform paths
-log "🧹 Cleaning old Terraform installations..."
+# ✅ Remove old Terraform installs
+log "🧹 Cleaning old Terraform versions..."
 for path in \
     /usr/local/bin/terraform \
     /usr/bin/terraform \
@@ -119,19 +117,34 @@ log "⛵ Installing Helm..."
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 ################################################################################
-# DOCKER ENGINE
+# DOCKER (Ubuntu 24.04-Compatible)
 ################################################################################
-log "🐳 Installing Docker…"
+log "🐳 Installing Docker (Ubuntu 24.04 — Noble)…"
 
+# Remove conflicting packages
 sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
 
-if ! command -v docker >/dev/null 2>&1; then
-    sudo apt-get update -y
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io || {
-        err "Docker installation failed."
-        exit 1
-    }
-fi
+# Install Docker GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository (correct for Ubuntu 24.04)
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu noble stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update -y
+
+# Install Docker CE
+sudo apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin
 
 sudo usermod -aG docker "$(whoami)"
 docker --version || warn "Docker installed but version check failed."
@@ -147,6 +160,6 @@ sudo mv kubectl /usr/local/bin/
 kubectl version --client || warn "kubectl installed but version check failed."
 
 ################################################################################
-# SUCCESS
+# ✅ SUCCESS
 ################################################################################
 log "🎉 All tools installed successfully!"
