@@ -1,7 +1,7 @@
 variables:
   azure_subscription_id: "3e2430ff-cf25-44b4-a264-a1fe5d99c39e"
   azure_tenant_id:       "702c8df7-5670-48f3-babc-3053e78a82f9"
-  azure_client_id:       "2694799d-8ec2-46e4-ae11-a59937e4dd5f"
-  azure_client_secret:   "Nnu8Q~mJgFQVm1b2gxZeha0_XCWH3LjcsILXga-."
+  azure_client_id:       "70447fcd-7af0-46b7-bf5e-fd4d3a83179f"
+  azure_client_secret:   "7Gi8Q~3siIzCECG3x2lgydG8ja4~AqSW3DsJbaWI"
   region:                "eastus2"
   rgname:                "vipin-demo-resource-group"
