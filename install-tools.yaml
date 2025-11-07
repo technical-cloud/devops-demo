@@ -1,14 +1,15 @@
-stages:
-- stage: InstallTools
-  displayName: "Install Tools Stage"
-  jobs:
-    - job: InstallToolsOnExistingAgent
-      displayName: "Install Tools on Existing Agent"
-      pool:
-        name: "vadapav"                          # <-- your self-hosted agent pool
-        demands:
-          - Agent.Name -equals vipin-demo-agent-machine   # target specific agent
-      steps:
-        - script: bash scripts/install-tools.sh
-          displayName: "Install Terraform, Azure CLI, Helm, Docker, Ansible, Kubectl"
-          workingDirectory: $(Build.SourcesDirectory)
+stage: InstallTools
+displayName: "Install Tools Stage"
+
+jobs:
+  - job: InstallToolsOnExistingAgent
+    displayName: "Install Tools on Existing Agent"
+    pool:
+      name: "vadapav"                          # self-hosted agent pool
+      demands:
+        - Agent.Name -equals vipin-demo-agent-machine  # target agent
+
+    steps:
+      - script: bash scripts/install-tools.sh
+        displayName: "Install Terraform, Azure CLI, Helm, Docker, Ansible, Kubectl"
+        workingDirectory: $(Build.SourcesDirectory)

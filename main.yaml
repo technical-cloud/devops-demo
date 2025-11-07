@@ -6,33 +6,36 @@ parameters:
   - name: runInstallTools
     type: boolean
     default: true
+
   - name: runCreateVM
     type: boolean
     default: true
+
   - name: runCreateAKS
     type: boolean
     default: true
 
-# Load both variable templates (global + ansible)
+# Load variable templates
 variables:
   - template: vars/global-vars.yaml
   - template: vars/ansible-vars.yaml
 
 stages:
+
 # ------------------------
 # Stage 1: Install Tools
 # ------------------------
 - ${{ if eq(parameters.runInstallTools, true) }}:
-  - template: install-tools.yaml
+    - template: azure-pipelines/install-tools.yaml
 
 # ------------------------
 # Stage 2: Create VM
 # ------------------------
 - ${{ if eq(parameters.runCreateVM, true) }}:
-  - template: create-vm.yaml
+    - template: azure-pipelines/create-vm.yaml
 
 # ------------------------
 # Stage 3: Create AKS
 # ------------------------
 - ${{ if eq(parameters.runCreateAKS, true) }}:
-  - template: create-aks.yaml
+    - template: azure-pipelines/create-aks.yaml

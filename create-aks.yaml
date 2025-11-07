@@ -1,32 +1,31 @@
-stages:
-- stage: CreateAKS
-  displayName: "Deploy AKS Stage"
-  jobs:
-    - job: CreateAKSOnExistingAgent
-      displayName: "Deploy AKS on Existing Agent"
-      pool:
-        name: "vadapav"
-        demands:
-          - Agent.Name -equals vipin-demo-agent-machine
-      steps:
-        - script: bash scripts/az-login.sh
-          displayName: "Login to Azure"
-          workingDirectory: $(Build.SourcesDirectory)
-          env:
-            azure_subscription_id: $(azure_subscription_id)
-            azure_tenant_id: $(azure_tenant_id)
-            azure_client_id: $(azure_client_id)
-            azure_client_secret: $(azure_client_secret)
+stage: CreateAKS
+displayName: "Deploy AKS Stage"
 
-        - script: bash scripts/create-aks.sh
-          displayName: "Deploy AKS using Terraform"
-          workingDirectory: $(Build.SourcesDirectory)
-          env:
-            resourceGroup: $(rgname)
-            location: $(region)
-            aksName: $(aksName)
-            aksNodeCount: $(aksNodeCount)
-            aksNodeVMSize: $(aksNodeVMSize)
-            tfBackendRG: $(tfBackendRG)
-            tfBackendStorage: $(tfBackendStorage)
-            tfBackendContainer: $(tfBackendContainer)
+jobs:
+  - job: CreateAKSOnExistingAgent
+    displayName: "Deploy AKS on Existing Agent"
+    pool:
+      name: "vadapav"
+      demands:
+        - Agent.Name -equals vipin-demo-agent-machine
+
+    steps:
+
+      - script: bash scripts/az-login.sh
+        displayName: "Login to Azure"
+        workingDirectory: $(Build.SourcesDirectory)
+        env:
+          azure_subscription_id: $(azure_subscription_id)
+          azure_tenant_id: $(azure_tenant_id)
+          azure_client_id: $(azure_client_id)
+          azure_client_secret: $(azure_client_secret)
+
+      - script: bash scripts/create-aks.sh
+        displayName: "Deploy AKS using Terraform"
+        workingDirectory: $(Build.SourcesDirectory)
+        env:
+          resourceGroup: $(rgname)
+          location: $(region)
+          aksName: $(aksName)
+          aksNodeCount: $(aksNodeCount)
+          aksNodeVMSize: $(aksNodeVMSize)
