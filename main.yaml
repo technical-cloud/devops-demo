@@ -26,16 +26,16 @@ stages:
 # Stage 1: Install Tools
 # ------------------------
 - ${{ if eq(parameters.runInstallTools, true) }}:
-    - template: azure-pipelines/install-tools.yaml
+    - template: install-tools.yaml
 
 # ------------------------
 # Stage 2: Create VM
 # ------------------------
 - ${{ if eq(parameters.runCreateVM, true) }}:
-    - template: azure-pipelines/create-vm.yaml
+    - template: create-vm.yaml
 
 # ------------------------
 # Stage 3: Create AKS
 # ------------------------
 - ${{ if eq(parameters.runCreateAKS, true) }}:
-    - template: azure-pipelines/create-aks.yaml
+    - template: create-aks.yaml

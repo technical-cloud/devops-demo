@@ -2,6 +2,6 @@ variables:
   vmName: "demo-vm"
   vmSize: "Standard_B2s"
   vmImage: "Ubuntu2204"
-  adminUser: "docker"
+  adminUser: "Docker"
   adminPassword: "Docker@12345"
   
