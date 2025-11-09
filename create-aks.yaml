@@ -14,7 +14,7 @@ stages:
 
         - script: bash scripts/az-login.sh
           displayName: "Login to Azure"
-          workingDirectory: $(Build.SourcesDirectory)/azure-pipelines
+          workingDirectory: $(Build.SourcesDirectory)
           env:
             azure_subscription_id: $(azure_subscription_id)
             azure_tenant_id: $(azure_tenant_id)
@@ -23,7 +23,7 @@ stages:
 
         - script: bash scripts/create-aks.sh
           displayName: "Deploy AKS using Terraform"
-          workingDirectory: $(Build.SourcesDirectory)/azure-pipelines
+          workingDirectory: $(Build.SourcesDirectory)
           env:
             azure_subscription_id: $(azure_subscription_id)
             azure_tenant_id: $(azure_tenant_id)
