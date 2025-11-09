@@ -1,17 +1,16 @@
 stages:
 - stage: CreateAKS
-  displayName: "Deploy AKS Stage"
+  displayName: "Create AKS Cluster"
 
   jobs:
-    - job: CreateAKSOnExistingAgent
-      displayName: "Deploy AKS on Existing Agent"
+    - job: DeployAKS
+      displayName: "Deploy AKS using Terraform"
       pool:
         name: "vadapav"
         demands:
           - Agent.Name -equals vipin-demo-agent-machine
 
       steps:
-
         - script: bash scripts/az-login.sh
           displayName: "Login to Azure"
           workingDirectory: $(Build.SourcesDirectory)
@@ -25,8 +24,7 @@ stages:
           displayName: "Deploy AKS using Terraform"
           workingDirectory: $(Build.SourcesDirectory)
           env:
-            resourceGroup: $(rgname)
-            location: $(region)
-            aksName: $(aksName)
-            aksNodeCount: $(aksNodeCount)
-            aksNodeVMSize: $(aksNodeVMSize)
+            azure_subscription_id: $(azure_subscription_id)
+            azure_tenant_id: $(azure_tenant_id)
+            azure_client_id: $(azure_client_id)
+            azure_client_secret: $(azure_client_secret)
