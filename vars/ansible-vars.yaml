@@ -20,7 +20,7 @@ variables:
   vmName: "vipin-demo-vm"                     # Name of the VM
   vmSize: "Standard_B2s"                      # VM size
   vmImage: "Ubuntu2204"                       # VM image
-  adminUser: "Docker"                         # VM admin username
+  adminUser: "dockeruser"                         # VM admin username
   adminPassword: "Docker@12345"               # VM admin password (replace with secret in production)
   ansible_publicIP: true                       # Assign public IP (true/false)
 
