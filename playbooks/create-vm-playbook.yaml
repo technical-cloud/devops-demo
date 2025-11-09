@@ -6,23 +6,23 @@
   vars:
     ansible_python_interpreter: /usr/bin/python3
 
-    region:        "{{ lookup('env','region') }}"
-    rgname:        "{{ lookup('env','rgname') }}"
+    region:        "{{ lookup('env','REGION') }}"
+    rgname:        "{{ lookup('env','RGNAME') }}"
 
-    vnetName:      "{{ lookup('env','virtualNetwork') }}"
-    subnetName:    "{{ lookup('env','subnetName') }}"
-    vnetCidr:      "{{ lookup('env','vnetaddr') }}"
-    subnetCidr:    "{{ lookup('env','subnetAddr') }}"
+    vnetName:      "{{ lookup('env','VIRTUALNETWORK') }}"
+    subnetName:    "{{ lookup('env','SUBNETNAME') }}"
+    vnetCidr:      "{{ lookup('env','VNETADDR') }}"
+    subnetCidr:    "{{ lookup('env','SUBNETADDR') }}"
 
-    publicIpName:  "{{ lookup('env','publicIPName') }}"
-    nsgName:       "{{ lookup('env','nsgName') }}"
-    nicName:       "{{ lookup('env','vmName') }}-nic"
+    publicIpName:  "{{ lookup('env','PUBLICIPNAME') }}"
+    nsgName:       "{{ lookup('env','NSGNAME') }}"
+    nicName:       "{{ lookup('env','VMNAME') }}-nic"
 
-    vmName:        "{{ lookup('env','vmName') }}"
-    vmImage:       "{{ lookup('env','vmImage') }}"
-    vmSize:        "{{ lookup('env','vmSize') }}"
-    adminUser:     "{{ lookup('env','adminUser') }}"
-    adminPassword: "{{ lookup('env','adminPassword') }}"
+    vmName:        "{{ lookup('env','VMNAME') }}"
+    vmImage:       "{{ lookup('env','VMIMAGE') }}"
+    vmSize:        "{{ lookup('env','VMSIZE') }}"
+    adminUser:     "{{ lookup('env','ADMINUSER') }}"
+    adminPassword: "{{ lookup('env','ADMINPASSWORD') }}"
 
   tasks:
 

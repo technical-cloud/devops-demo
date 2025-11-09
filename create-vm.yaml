@@ -25,14 +25,20 @@ stages:
           displayName: "Create VM using Ansible"
           workingDirectory: $(Build.SourcesDirectory)
           env:
-            resourceGroup: $(rgname)
-            location: $(region)
-            ansible_vmName: $(vmName)
-            ansible_vmSize: $(vmSize)
-            ansible_vmImage: $(vmImage)
-            ansible_adminUser: $(adminUser)
-            ansible_publicIP: $(ansible_publicIP)
-            ansible_playbookPath: $(ansible_playbookPath)
-            virtualNetwork: $(virtualNetwork)
-            subnetName: $(subnetName)
-            vnetaddr: $(vnetaddr)
+            RGNAME: $(rgname)
+            REGION: $(region)
+
+            VIRTUALNETWORK: $(virtualNetwork)
+            SUBNETNAME: $(subnetName)
+            VNETADDR: $(vnetaddr)
+            SUBNETADDR: $(subnetAddr)
+
+            VMNAME: $(vmName)
+            VMSIZE: $(vmSize)
+            VMIMAGE: $(vmImage)
+
+            ADMINUSER: $(adminUser)
+            ADMINPASSWORD: $(adminPassword)
+
+            PUBLICIPNAME: $(publicIPName)
+            NSGNAME: $(nsgName)
