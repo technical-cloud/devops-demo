@@ -19,6 +19,10 @@ az account set --subscription "$azure_subscription_id"
 
 echo "Azure login successful"
 
+# Enter Terraform directory (required)
+echo "Entering Terraform directory"
+cd terraform
+
 echo "Initializing Terraform"
 terraform init
 
