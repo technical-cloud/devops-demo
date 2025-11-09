@@ -47,12 +47,13 @@
         --resource-group {{ rgname }}
         --name {{ nsgName }}
 
-    - name: Create Public IP Address
+    - name: Create Public IP Address (Standard + Static)
       command: >
         az network public-ip create
         --resource-group {{ rgname }}
         --name {{ publicIpName }}
-        --allocation-method Dynamic
+        --sku Standard
+        --allocation-method Static
 
     - name: Create Network Interface
       command: >
