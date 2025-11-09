@@ -1,29 +1,95 @@
 ---
-- name: Create Azure VM without external collections
+- name: Create Azure VM prerequisites using CLI
   hosts: localhost
   connection: local
+
   vars:
     ansible_python_interpreter: /usr/bin/python3
 
+    region:        "{{ lookup('env','region') }}"
+    rgname:        "{{ lookup('env','rgname') }}"
+
+    vnetName:      "{{ lookup('env','virtualNetwork') }}"
+    subnetName:    "{{ lookup('env','subnetName') }}"
+    vnetCidr:      "{{ lookup('env','vnetaddr') }}"
+    subnetCidr:    "{{ lookup('env','subnetAddr') }}"
+
+    publicIpName:  "{{ lookup('env','publicIPName') }}"
+    nsgName:       "{{ lookup('env','nsgName') }}"
+    nicName:       "{{ lookup('env','vmName') }}-nic"
+
+    vmName:        "{{ lookup('env','vmName') }}"
+    vmImage:       "{{ lookup('env','vmImage') }}"
+    vmSize:        "{{ lookup('env','vmSize') }}"
+    adminUser:     "{{ lookup('env','adminUser') }}"
+    adminPassword: "{{ lookup('env','adminPassword') }}"
+
   tasks:
+
     - name: Create Resource Group
       command: >
         az group create
         --name {{ rgname }}
         --location {{ region }}
-      register: rg_output
-    - debug:
-        var: rg_output.stdout
 
-    - name: Create VM
+    - name: Create Virtual Network and Subnet
+      command: >
+        az network vnet create
+        --resource-group {{ rgname }}
+        --name {{ vnetName }}
+        --address-prefixes {{ vnetCidr }}
+        --subnet-name {{ subnetName }}
+        --subnet-prefixes {{ subnetCidr }}
+
+    - name: Create Network Security Group
+      command: >
+        az network nsg create
+        --resource-group {{ rgname }}
+        --name {{ nsgName }}
+
+    - name: Create Public IP Address
+      command: >
+        az network public-ip create
+        --resource-group {{ rgname }}
+        --name {{ publicIpName }}
+        --allocation-method Dynamic
+
+    - name: Create Network Interface
+      command: >
+        az network nic create
+        --resource-group {{ rgname }}
+        --name {{ nicName }}
+        --vnet-name {{ vnetName }}
+        --subnet {{ subnetName }}
+        --network-security-group {{ nsgName }}
+        --public-ip-address {{ publicIpName }}
+
+    - name: Create VM using username/password (NO SSH keys)
       command: >
         az vm create
         --resource-group {{ rgname }}
         --name {{ vmName }}
         --image {{ vmImage }}
-        --admin-username {{ adminUser }}
         --size {{ vmSize }}
-        --generate-ssh-keys
+        --admin-username {{ adminUser }}
+        --admin-password "{{ adminPassword }}"
+        --nics {{ nicName }}
       register: vm_output
-    - debug:
+
+    - name: Display VM creation output
+      debug:
         var: vm_output.stdout
+
+    - name: Extract Public IP
+      command: >
+        az vm show
+        --resource-group {{ rgname }}
+        --name {{ vmName }}
+        --show-details
+        --query "publicIps"
+        -o tsv
+      register: public_ip
+
+    - name: Display VM Public IP
+      debug:
+        msg: "VM Public IP: {{ public_ip.stdout }}"

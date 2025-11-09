@@ -3,5 +3,3 @@ variables:
   azure_tenant_id:       "702c8df7-5670-48f3-babc-3053e78a82f9"
   azure_client_id:       "70447fcd-7af0-46b7-bf5e-fd4d3a83179f"
   azure_client_secret:   "7Gi8Q~3siIzCECG3x2lgydG8ja4~AqSW3DsJbaWI"
-  region:                "eastus2"
-  rgname:                "vipin-demo-resource-group"
