@@ -3,7 +3,7 @@ variables:
   # Azure Resource Details
   # -----------------------
   region: "eastus2"                           # Azure region
-  rgname: "vipin-demo-resource-group"        # Resource Group name
+  rgname: "vipin-resource-group"        # Resource Group name
   location: "eastus2"                         # Can be same as region
 
   # -----------------------
