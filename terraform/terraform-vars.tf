@@ -1,5 +1,4 @@
-# terraform/variable.tf
-
+# AKS cluster variables
 variable "aksName" {
   type        = string
   description = "Name of the AKS cluster"
@@ -25,22 +24,23 @@ variable "aksNodeVMSize" {
   description = "VM size for AKS nodes"
 }
 
-variable "azure_subscription_id" {
+# Azure authentication variables
+variable "subscription_id" {
   type        = string
   description = "Azure Subscription ID"
 }
 
-variable "azure_tenant_id" {
+variable "tenant_id" {
   type        = string
   description = "Azure Tenant ID"
 }
 
-variable "azure_client_id" {
+variable "client_id" {
   type        = string
   description = "Azure Client (App) ID"
 }
 
-variable "azure_client_secret" {
+variable "client_secret" {
   type        = string
   sensitive   = true
   description = "Azure Client Secret for Service Principal"
