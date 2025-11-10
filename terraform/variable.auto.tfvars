@@ -3,7 +3,7 @@ aksName       = "vipin-aks-demo"
 location      = "eastus2"
 resourceGroup = "vipin-resource-group"
 aksNodeCount  = 2
-aksNodeVMSize = "Standard_DS2_v2"
+aksNodeVMSize = "Standard_D2s_v3"
 
 # Azure credentials
 subscription_id = "3e2430ff-cf25-44b4-a264-a1fe5d99c39e"
