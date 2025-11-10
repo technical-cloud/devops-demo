@@ -1,5 +1,4 @@
 # terraform/variable.tf
-# All default values removed
 
 variable "aksName" {
   type        = string
@@ -26,17 +25,23 @@ variable "aksNodeVMSize" {
   description = "VM size for AKS nodes"
 }
 
-variable "tfBackendRG" {
+variable "azure_subscription_id" {
   type        = string
-  description = "Terraform backend resource group"
+  description = "Azure Subscription ID"
 }
 
-variable "tfBackendStorage" {
+variable "azure_tenant_id" {
   type        = string
-  description = "Terraform backend storage account"
+  description = "Azure Tenant ID"
 }
 
-variable "tfBackendContainer" {
+variable "azure_client_id" {
   type        = string
-  description = "Terraform backend container name"
+  description = "Azure Client (App) ID"
+}
+
+variable "azure_client_secret" {
+  type        = string
+  sensitive   = true
+  description = "Azure Client Secret for Service Principal"
 }
